@@ -139,7 +139,7 @@ func main() {
 		SetRows(1, 0, 1).
 		SetColumns(30, 0, 30).
 		SetBorders(true).
-		AddItem(newPrimitive("KK角色卡MOD缺失检测工具 v1.2.1"), 0, 0, 1, 3, 0, 0, false).
+		AddItem(newPrimitive("KK角色卡MOD缺失检测工具 v1.0.0"), 0, 0, 1, 3, 0, 0, false).
 		AddItem(newPrimitive("软件为作者免费发布，至于为什么是控制台UI？不觉得这很酷吗....很符合.....后面忘了"), 2, 0, 1, 3, 0, 0, false)
 
 	// Layout for screens narrower than 100 cells (menu and side bar are hidden).
