@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/tcnksm/go-latest"
 	"io"
 	"log"
 	"os"
@@ -32,6 +33,8 @@ type ModXml struct {
 	Path        string
 	Upload      bool
 }
+
+const version = "0.1.0"
 
 func main() {
 	//if !RunningByDoubleClick() {
@@ -74,6 +77,25 @@ func main() {
 	//		textView.Highlight(strconv.Itoa(index)).ScrollToHighlight()
 	//	}
 	//})
+	// 更新检测
+
+	githubTag := &latest.GithubTag{
+		Owner:      "GenesisAN",
+		Repository: "KKCardModCheck",
+	}
+
+	res, targer := latest.Check(githubTag, version)
+	var newVersionText string
+	if targer != nil {
+		newVersionText = fmt.Sprintf("%s (*无法检测版本,请检查https://github.com/GenesisAN/KKCardModCheck访问是否顺畅)", version)
+	} else {
+		if res.Outdated {
+			newVersionText = fmt.Sprintf("%s (*有新版本:%s)", version, res.Current)
+		} else {
+			newVersionText = fmt.Sprintf("v%s", version)
+		}
+	}
+
 	textView.SetBorder(true)
 	mods := []ModXml{}
 	lostmodname := make(map[string]card.ResolveInfo)
@@ -112,17 +134,28 @@ func main() {
 			checkCardUseMod(pages)
 		}).
 		AddItem("[未完成]上传Mod到百度云，并将秒传地址提交到服务器", "该功能用于补充服务器没有的mod信息，为其他玩家造福", 'u', nil).
-		AddItem("[未完成]从服务器获取缺失mod的秒传信息", "将缺失的mod名称，在服务器数据库中检索，尝试获取它的秒传地址", 'd', nil).
-		AddItem("关于本软件", "本软件完全免费，具体社区信息请进入查看", 'a', func() {
+		AddItem("[未完成]从服务器获取缺失mod的秒传信息", "将缺失的mod名称，在服务器数据库中检索，尝试获取它的秒传地址", 'd', nil)
+
+	if res.Outdated {
+		list.AddItem(fmt.Sprintf("下载新版本:v%s", res.Current), "喂!三点几，饮茶先啦！(哼啊啊啊啊...)", 'a', func() {
 			if isWin() {
-				MsgWeb(pages, "本软件由G_AN开发，欢迎入群讨论交流，入群方式可从doc.kkgkd.com获取", "主页", "访问网页", "https://doc.kkgkd.com")
+				MsgWeb(pages, fmt.Sprintf("当前软件版本：%s,Github最新Release版本:%s", version, res.Current), "主页", "访问下载页", "https://github.com/GenesisAN/KKCardModCheck/releases")
 				return
 			}
-			OKMsg(pages, "本软件由G_AN开发，欢迎入群讨论交流，入群方式可从doc.kkgkd.com获取", "主页")
-		}).
+			OKMsg(pages, "Github最新Release版本下载地址:https://github.com/GenesisAN/KKCardModCheck/releases", "主页")
+		})
+	}
+	list.AddItem("关于本软件", "本软件完全免费，具体社区信息请进入查看", 'a', func() {
+		if isWin() {
+			MsgWeb(pages, "本软件由G_AN开发，欢迎入群讨论交流，入群方式可从doc.kkgkd.com获取", "主页", "访问网页", "https://doc.kkgkd.com")
+			return
+		}
+		OKMsg(pages, "本软件由G_AN开发，欢迎入群讨论交流，入群方式可从doc.kkgkd.com获取", "主页")
+	}).
 		AddItem("退出", "按下退出程序", 'q', func() {
 			app.Stop()
 		})
+
 	pages.AddPage("主页", list, true, true)
 	pages.AddPage("MOD读取页", textView, true, false)
 
@@ -139,7 +172,7 @@ func main() {
 		SetRows(1, 0, 1).
 		SetColumns(30, 0, 30).
 		SetBorders(true).
-		AddItem(newPrimitive("KK角色卡MOD缺失检测工具 v1.0.0"), 0, 0, 1, 3, 0, 0, false).
+		AddItem(newPrimitive(fmt.Sprintf("KK角色卡MOD缺失检测工具 %s", newVersionText)), 0, 0, 1, 3, 0, 0, false).
 		AddItem(newPrimitive("软件为作者免费发布，至于为什么是控制台UI？不觉得这很酷吗....很符合.....后面忘了"), 2, 0, 1, 3, 0, 0, false)
 
 	// Layout for screens narrower than 100 cells (menu and side bar are hidden).
