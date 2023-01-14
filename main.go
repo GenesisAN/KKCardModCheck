@@ -17,7 +17,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 )
 
 type ModXml struct {
@@ -36,11 +35,11 @@ type ModXml struct {
 func main() {
 	//if !RunningByDoubleClick() {
 	if isWin() && len(os.Args) == 1 {
-		err := NoMoreDoubleClick()
-		if err != nil {
-			fmt.Printf("遇到错误: %v", err)
-			time.Sleep(time.Second * 5)
-		}
+		//err := NoMoreDoubleClick()
+		//if err != nil {
+		//	fmt.Printf("遇到错误: %v", err)
+		//	time.Sleep(time.Second * 5)
+		//}
 		os.Exit(0)
 	}
 	//}
