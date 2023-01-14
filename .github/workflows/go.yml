@@ -10,7 +10,7 @@ on:
 jobs:
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
 
@@ -27,12 +27,9 @@ jobs:
 
     - name: Build
       run: |
-        GOOS=windows
-        GOARCH=amd64
-        go build ./...
-        ls
+        go build -ldflags "-s -w" -o KKCardModCheck.exe -trimpath
     - name: UploadFile
       uses: actions/upload-artifact@v3
       with:
         name: KKCardModCheck_win_amd64.exe
-        path: ./KKCardModCheck*.exe
+        path: ./KKCardModCheck.exe
