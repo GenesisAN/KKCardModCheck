@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-
     - name: Set up Go
       uses: actions/setup-go@v3
       with:
@@ -27,7 +26,7 @@ jobs:
       run: |
         GOOS=windows
         GOARCH=amd64
-        go build . -o KKCardModCheck.exe
+        go build -o KKCardModCheck.exe
     - name: UploadFile
       uses: actions/upload-artifact@v3
       with:
