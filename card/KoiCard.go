@@ -146,8 +146,8 @@ func DeserializeObjects(data *PluginData) PluginDataEx {
 
 func (kc *KoiCard) PrintCardInfo() {
 	fmt.Println("插件依赖:")
-	for i, ex := range kc.ExtendedList {
-		fmt.Printf("[插件%d]%s(版本:%d)\n", i, ex.Name, ex.Version)
+	for _, ex := range kc.ExtendedList {
+		fmt.Printf("[插件]%s(版本:%d)\n", ex.Name, ex.Version)
 		ex.PrintMod()
 	}
 }
