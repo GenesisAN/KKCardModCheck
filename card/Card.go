@@ -2,11 +2,12 @@ package card
 
 type Card struct {
 	Extended     map[string]*PluginData
-	ExtendedList []*PluginDataEx
+	ExtendedList map[string]*PluginDataEx
 	CharInfo     *ChaFileParameterEx
 	Image        []byte
 	CardType     string
 	LoadVersion  string
+	Path         string
 }
 
 type ChaFileParameterEx struct {

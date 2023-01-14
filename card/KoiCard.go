@@ -107,13 +107,14 @@ func ParseKoiChara(buff *bytes.Buffer) KoiCard {
 	}
 
 	// 遍历exData提取RequiredZipmodGUIDs
-	var exDataEx []*PluginDataEx
+	exDataEx := make(map[string]*PluginDataEx)
 	for s, data := range exData {
 		// 根据GUID找出插件对应的Data
 		dex := DeserializeObjects(data)
 		dex.Name = s
 		dex.Version = data.Version
-		exDataEx = append(exDataEx, &dex)
+		exDataEx[dex.Name] = &dex
+		//exDataEx = append(exDataEx, &dex)
 	}
 	kc.ExtendedList = exDataEx
 	return kc

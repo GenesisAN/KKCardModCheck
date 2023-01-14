@@ -5,12 +5,14 @@ import (
 	"archive/zip"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -33,7 +35,7 @@ type ModXml struct {
 
 func main() {
 	//if !RunningByDoubleClick() {
-	if runtime.GOOS == "windows" && len(os.Args) == 1 {
+	if isWin() && len(os.Args) == 1 {
 		err := NoMoreDoubleClick()
 		if err != nil {
 			fmt.Printf("遇到错误: %v", err)
@@ -81,7 +83,7 @@ func main() {
 			textView.Clear()
 			go func() {
 				mods = []ModXml{}
-				fs := GetAllFiles(`./`)
+				fs := GetAllFiles(`./`, ".zipmod")
 				all = len(fs)
 				for i, v := range fs {
 					mod, err := ReadZip("", v, i)
@@ -100,16 +102,22 @@ func main() {
 				OKMsg(pages, "游戏mod信息统计完成，已写入ModesInfo.json文件!", "主页")
 			}()
 		}).
-		AddItem("检查单个卡片缺失MOD", "根据卡片使用的MOD和MOD数据文件进行对比，找出缺少的MOD", 'c', func() {
+		AddItem("批量检查卡片缺失MOD", "输入卡片文件夹和MOD数据文件进行对比，统计所有卡片缺失的Mod", 'f', func() {
+			checkAllCardMods(pages, lostmodname)
+		}).
+		AddItem("单个检查卡片缺失MOD", "根据卡片使用的MOD和MOD数据文件进行对比，统计单个卡片缺失的Mod", 'c', func() {
 			checkSingCardMods(pages, lostmodname)
 		}).
-		AddItem("批量检查卡片缺失MOD", "输入卡片文件夹，统计所有卡片缺失的Mod", 'f', func() {
-
+		AddItem("卡片MOD匹配", "查看下载的MOD是否是卡片所使用的Mod", 'p', func() {
+			checkCardUseMod(pages)
 		}).
-		AddItem("[未完成]卡片MOD匹配", "查看下载的MOD是否是卡片所使用的Mod", 'p', nil).
 		AddItem("[未完成]上传Mod到百度云，并将秒传地址提交到服务器", "该功能用于补充服务器没有的mod信息，为其他玩家造福", 'u', nil).
 		AddItem("[未完成]从服务器获取缺失mod的秒传信息", "将缺失的mod名称，在服务器数据库中检索，尝试获取它的秒传地址", 'd', nil).
 		AddItem("关于本软件", "本软件完全免费，具体社区信息请进入查看", 'a', func() {
+			if isWin() {
+				MsgWeb(pages, "本软件由G_AN开发，欢迎入群讨论交流，入群方式可从doc.kkgkd.com获取", "主页", "访问网页", "https://doc.kkgkd.com")
+				return
+			}
 			OKMsg(pages, "本软件由G_AN开发，欢迎入群讨论交流，入群方式可从doc.kkgkd.com获取", "主页")
 		}).
 		AddItem("退出", "按下退出程序", 'q', func() {
@@ -149,6 +157,7 @@ func main() {
 	}
 }
 
+// 检查单个卡片缺失mod
 func checkSingCardMods(pages *tview.Pages, lostmodname map[string]card.ResolveInfo) {
 	if IsNotExist("./ModsInfo.json") {
 		OKMsg(pages, "未找到ModsInfo.json\n请先生成游戏MOD数据文件", "主页")
@@ -162,8 +171,7 @@ func checkSingCardMods(pages *tview.Pages, lostmodname map[string]card.ResolveIn
 		if key == tcell.KeyEnter {
 			// 初始化缺失mod map
 			lostmodname = make(map[string]card.ResolveInfo)
-			// 处理传入路径双引号处理
-			cardpath := strings.Replace(cd.GetText(), "\"", "", -1)
+
 			// ModsInfo文件读取
 			data, err := os.ReadFile("./ModsInfo.json")
 			if err != nil {
@@ -172,6 +180,8 @@ func checkSingCardMods(pages *tview.Pages, lostmodname map[string]card.ResolveIn
 			// 反序列化Modsinfo.json的数据
 			var modsinfo []ModXml
 			json.Unmarshal(data, &modsinfo)
+			// 处理传入路径双引号处理
+			cardpath := strings.Replace(cd.GetText(), "\"", "", -1)
 			ext := path.Ext(cardpath) // 提取路径后缀进行比对
 			if ext == ".png" {
 				// 读取KK卡片数据
@@ -180,29 +190,24 @@ func checkSingCardMods(pages *tview.Pages, lostmodname map[string]card.ResolveIn
 					OKMsg(pages, fmt.Sprintf("%s", err.Error()), "路径输入")
 					return
 				}
-				// 遍历卡片数据
-				for _, cardmod := range kkcard.ExtendedList {
-					// 找到mod相关数据
-					if cardmod.Name == "com.bepis.sideloader.universalautoresolver" {
-						// 遍历卡片mod数据里的zipmod数组
-					NextZipmod:
-						for _, zipmod := range cardmod.RequiredZipmodGUIDs {
-							//是否找到了mod标志
-							// 遍历本地modinfo的数据，进行对比
-							for _, mod := range modsinfo {
-								//如果找到了,直接break终止遍历，就开始下一个Zipmod匹配
-								if mod.GUID == zipmod.GUID {
-									break NextZipmod
-								}
+				v, Ok := kkcard.ExtendedList["com.bepis.sideloader.universalautoresolver"]
+				if Ok {
+				NextZipmod:
+					for _, zipmod := range v.RequiredZipmodGUIDs {
+						//是否找到了mod标志
+						// 遍历本地modinfo的数据，进行对比
+						for _, mod := range modsinfo {
+							//如果找到了,直接break终止遍历，就开始下一个Zipmod匹配
+							if mod.GUID == zipmod.GUID {
+								break NextZipmod
 							}
-							//没有break说明没有找到该mod,直接添加到map
-							if _, OK := lostmodname[zipmod.GUID]; !OK {
-								lostmodname[zipmod.GUID] = zipmod
-							}
+						}
+						//没有break说明没有找到该mod,直接添加到map
+						if _, OK := lostmodname[zipmod.GUID]; !OK {
+							lostmodname[zipmod.GUID] = zipmod
 						}
 					}
 				}
-
 				if len(lostmodname) != 0 { //当缺失mod数量不为0时，写入TXT，并弹出提示框
 					var p []string
 					//提取map中的缺失mod名称
@@ -229,64 +234,86 @@ func checkSingCardMods(pages *tview.Pages, lostmodname map[string]card.ResolveIn
 		false)
 	pages.SwitchToPage("路径输入")
 }
+
+// 检查所有卡片缺失mod
 func checkAllCardMods(pages *tview.Pages, lostmodname map[string]card.ResolveInfo) {
 	if IsNotExist("./ModsInfo.json") {
 		OKMsg(pages, "未找到ModsInfo.json\n请先生成游戏MOD数据文件", "主页")
 		return
 	}
-	data, err := os.ReadFile("./ModsInfo.json")
-	if err != nil {
-		OKMsg(pages, fmt.Sprintf("文件读取失败:%s", err.Error()), "路径输入")
-	}
 	cd := tview.NewInputField().
-		SetLabel("输入人物卡文件夹路径,或将文件夹拖入(回车确定，ESC返回): ").
+		SetLabel("输入卡片文件夹路径,或将文件夹拖入(回车确定，ESC返回): ").
 		SetFieldWidth(100)
 	cd.SetDoneFunc(func(key tcell.Key) {
+		// 按下回车的处理
 		if key == tcell.KeyEnter {
+			// 初始化缺失mod map
 			lostmodname = make(map[string]card.ResolveInfo)
+			// 处理传入路径双引号处理
 			cardpath := strings.Replace(cd.GetText(), "\"", "", -1)
+			// ModsInfo文件读取
+			data, err := os.ReadFile("./ModsInfo.json")
+			if err != nil {
+				OKMsg(pages, fmt.Sprintf("文件读取失败:%s", err.Error()), "路径输入")
+			}
+			// 反序列化Modsinfo.json的数据
+			var cards []*card.KoiCard
 			var modsinfo []ModXml
+			var frc [][]string
 			json.Unmarshal(data, &modsinfo)
-			ext := path.Ext(cardpath)
-			if ext == ".png" {
-				kkcard, err := card.ReadCardKK(cardpath)
-				if err != nil {
-					OKMsg(pages, fmt.Sprintf("卡片读取失败:%s", err.Error()), "路径输入")
-					return
+			ext := path.Ext(cardpath) // 提取路径后缀进行比对
+			if ext == "" {
+				fs := GetAllFiles(`./`, ".png")
+				for _, v := range fs {
+					card, err := card.ReadCardKK(v)
+					if err != nil {
+						frc = append(frc, []string{cardpath, err.Error()})
+						continue
+					}
+					cards = append(cards, card)
 				}
-				for _, cardmod := range kkcard.ExtendedList {
-					if cardmod.Name == "com.bepis.sideloader.universalautoresolver" {
-						for _, zipmod := range cardmod.RequiredZipmodGUIDs {
-							find := false
+				for i, kkcard := range cards {
+					MsgTips(pages, fmt.Sprintf("正在从文件夹读取所有png文件(%d/%d)", len(cards), i))
+					v, Ok := kkcard.ExtendedList["com.bepis.sideloader.universalautoresolver"]
+					if Ok {
+					NextZipmod:
+						for _, zipmod := range v.RequiredZipmodGUIDs {
+							//是否找到了mod标志
+							// 遍历本地modinfo的数据，进行对比
 							for _, mod := range modsinfo {
+								//如果找到了,直接break终止遍历，就开始下一个Zipmod匹配
 								if mod.GUID == zipmod.GUID {
-									find = true
+									break NextZipmod
 								}
 							}
-							if !find {
-								if _, OK := lostmodname[zipmod.GUID]; !OK {
-									lostmodname[zipmod.GUID] = zipmod
-								}
+							//没有break说明没有找到该mod,直接添加到map
+							if _, OK := lostmodname[zipmod.GUID]; !OK {
+								lostmodname[zipmod.GUID] = zipmod
 							}
 						}
 					}
 				}
 
-				if len(lostmodname) != 0 {
+				if len(lostmodname) != 0 { //当缺失mod数量不为0时，写入TXT，并弹出提示框
 					var p []string
-					for s, _ := range lostmodname {
+					//提取map中的缺失mod名称
+					for s := range lostmodname {
 						p = append(p, s)
 					}
+					//写入TXT文件
 					os.WriteFile("mods.txt", []byte(strings.Join(p, "\n")), 0644)
+					if isWin() {
+						MsgWeb(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页", "查看缺失mod", "./mods.txt")
+						return
+					}
 					OKMsg(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页")
-				} else {
+				} else { // 缺失mod数量为0
 					OKMsg(pages, "检索完成，没有缺失的MOD!", "主页")
 				}
-
-			} else {
+			} else { // 输入文件后缀错误
 				OKMsg(pages, "请输入PNG文件!", "路径输入")
 			}
-		} else if key == tcell.KeyESC {
+		} else if key == tcell.KeyESC { // 如果按下ESC，返回主页
 			pages.SwitchToPage("主页")
 		}
 
@@ -296,6 +323,105 @@ func checkAllCardMods(pages *tview.Pages, lostmodname map[string]card.ResolveInf
 		true,
 		false)
 	pages.SwitchToPage("路径输入")
+}
+
+// 卡片路径，mod路径
+var cp, mp string
+
+func checkCardUseMod(pages *tview.Pages) {
+	f := tview.NewForm().
+		AddTextView("Tips", "按Tab可切换选项，输入框可以拖入文件夹,或者png来快速填写,", 100, 1, true, false).
+		AddInputField("MOD路径", mp, 100, nil, func(text string) { mp = text }).
+		AddInputField("卡片路径", cp, 100, nil, func(text string) { cp = text }).
+		AddButton("比对", func() {
+			// 处理传入路径双引号处理
+			cardpath := strings.Replace(cp, "\"", "", -1)
+			modpath := strings.Replace(mp, "\"", "", -1)
+			cpext := path.Ext(cardpath) // 提取路径后缀进行比对
+			mpext := path.Ext(modpath)
+			if cpext != ".png" {
+				OKMsg(pages, "卡片路径请输入PNG文件", "卡MOD比对")
+				return
+			}
+			if mpext != ".zipmod" {
+				OKMsg(pages, "mod路径请输入文件zipmod文件", "卡MOD比对")
+				return
+			}
+			// 读取KK卡片数据
+			kkcard, err := card.ReadCardKK(cardpath)
+			if err != nil {
+				OKMsg(pages, fmt.Sprintf("%s", err.Error()), "卡MOD比对")
+				return
+			}
+			mod, err := ReadZip("", modpath, 0)
+			if err != nil {
+				OKMsg(pages, fmt.Sprintf("%s", err.Error()), "卡MOD比对")
+				return
+			}
+			v, Ok := kkcard.ExtendedList["com.bepis.sideloader.universalautoresolver"]
+			if Ok {
+				for _, zipmod := range v.RequiredZipmodGUIDs {
+					//如果找到了,直接break终止遍历，就开始下一个Zipmod匹配
+					if mod.GUID == zipmod.GUID {
+						cp, mp = "", ""
+						pages.AddPage("弹窗",
+							tview.NewModal().
+								SetBackgroundColor(tcell.ColorBlack).
+								SetText("这张卡使用了该Mod").
+								AddButtons([]string{"继续比对", "返回主界面"}).
+								SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+									if buttonIndex == 0 {
+										mp = ""
+										checkCardUseMod(pages)
+									} else {
+										cp, mp = "", ""
+										pages.SwitchToPage("主页")
+									}
+
+								}),
+							true,
+							false)
+						pages.SwitchToPage("弹窗")
+						return
+					}
+				}
+			}
+			mp = ""
+			pages.AddPage("弹窗",
+				tview.NewModal().
+					SetBackgroundColor(tcell.ColorBlack).
+					SetText("mod没有被这张卡片使用").
+					AddButtons([]string{"继续比对", "返回主界面"}).
+					SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+						if buttonIndex == 0 {
+							mp = ""
+							checkCardUseMod(pages)
+						} else {
+							cp, mp = "", ""
+							pages.SwitchToPage("主页")
+						}
+
+					}),
+				true,
+				false)
+			pages.SwitchToPage("弹窗")
+		}).
+		AddButton("返回", func() { pages.SwitchToPage("主页") })
+	pages.AddPage("卡MOD比对",
+		f,
+		true,
+		false)
+	pages.SwitchToPage("卡MOD比对")
+}
+
+func MsgTips(pages *tview.Pages, text string) {
+	pages.AddPage("弹窗",
+		tview.NewModal().
+			SetBackgroundColor(tcell.ColorBlack).
+			SetText(text),
+		true,
+		false)
+	pages.SwitchToPage("弹窗")
 }
 
 func OKMsg(pages *tview.Pages, text string, page string) {
@@ -314,11 +440,29 @@ func OKMsg(pages *tview.Pages, text string, page string) {
 	pages.SwitchToPage("弹窗")
 }
 
+func MsgWeb(pages *tview.Pages, text, page, button, url string) {
+	pages.AddPage("弹窗",
+		tview.NewModal().
+			SetBackgroundColor(tcell.ColorBlack).
+			SetText(text).
+			AddButtons([]string{"OK", button}).
+			SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+				if buttonIndex == 0 {
+					pages.SwitchToPage(page)
+				} else {
+					exec.Command("cmd", "/C", "start", url).Start()
+				}
+			}),
+		true,
+		false)
+	pages.SwitchToPage("弹窗")
+}
+
 func ReadZip(dst, src string, i int) (ModXml, error) {
 	mod := ModXml{}
 	zr, err := zip.OpenReader(src) //打开modzip
 	if err != nil {
-		return mod, err
+		return mod, errors.New(fmt.Sprintf("打开zip失败:%s", err.Error()))
 	}
 	for _, v := range zr.File { //遍历里面的文件
 		if v.FileInfo().Name() == "manifest.xml" { //找到manifest.xml
@@ -327,7 +471,7 @@ func ReadZip(dst, src string, i int) (ModXml, error) {
 			//构造XML的结构体
 			err = xml.Unmarshal(data, &mod) //内容反序列化，按指定格式拿到里面的数据
 			if err != nil {
-				return mod, err
+				return mod, errors.New(fmt.Sprintf("读取zipmod信息失败:%s", err.Error()))
 			}
 			//md5c, errc := GetModMD5Code("sf", src) //获取秒传链接
 			//if err != nil {
@@ -340,10 +484,10 @@ func ReadZip(dst, src string, i int) (ModXml, error) {
 	}
 	return mod, err
 }
-func GetAllFiles(root string) []string {
+func GetAllFiles(root, ext string) []string {
 	var files []string
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if filepath.Ext(path) != ".zipmod" {
+		if filepath.Ext(path) != ext {
 			return nil
 		}
 		files = append(files, path)
@@ -365,4 +509,7 @@ func IsExist(path string) bool {
 func IsNotExist(path string) bool {
 	_, err := os.Stat(path)
 	return err != nil && os.IsNotExist(err)
+}
+func isWin() bool {
+	return runtime.GOOS == "windows"
 }

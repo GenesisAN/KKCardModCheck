@@ -66,6 +66,7 @@ func ReadCardKK(path string) (*KoiCard, error) {
 	card := ParseKoiChara(buffer)
 	//card.PrintCardInfo()
 	card.Image = outpng
+	card.Path = path
 	card.CardType = cardtype
 	return &card, nil
 	//版本号
