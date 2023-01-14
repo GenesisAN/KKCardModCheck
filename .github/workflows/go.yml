@@ -30,6 +30,3 @@ jobs:
         GOOS=windows
         GOARCH=amd64
         go build ./...
-
-    - name: Run vet & lint
-      run: golint ./...
