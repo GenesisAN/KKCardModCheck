@@ -28,9 +28,9 @@ jobs:
       run: |
         GOOS=windows
         GOARCH=amd64
-        go build .
+        go build ./...
 
     - name: Run vet & lint
       run: |
-        go vet .
-        golint .
+        go vet ./...
+        golint ./...
