@@ -22,14 +22,12 @@ jobs:
     - name: Install dependencies
       run: |
         go version
-        go get -u golang.org/x/lint/golint
         go mod tidy
-
     - name: Build
       run: |
         GOOS=windows
         GOARCH=amd64
-        go build -o KKCardModCheck.exe
+        go build . -o KKCardModCheck.exe
     - name: UploadFile
       uses: actions/upload-artifact@v3
       with:
