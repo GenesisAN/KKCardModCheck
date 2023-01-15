@@ -36,7 +36,7 @@ type ModXml struct {
 	Upload      bool
 }
 
-const version = "0.1.0"
+const version = "0.1.1"
 
 func main() {
 	if isWin() && len(os.Args) == 1 {
