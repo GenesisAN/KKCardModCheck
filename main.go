@@ -126,7 +126,7 @@ func main() {
 			}()
 		}).
 		AddItem("批量检查卡片缺失MOD", "输入卡片文件夹和MOD数据文件进行对比，统计所有卡片缺失的Mod", 'f', func() {
-			checkAllCardMods(pages, lostmodname)
+			checkAllCardMods(pages, textView, lostmodname)
 		}).
 		AddItem("单个检查卡片缺失MOD", "根据卡片使用的MOD和MOD数据文件进行对比，统计单个卡片缺失的Mod", 'c', func() {
 			checkSingCardMods(pages, lostmodname)
@@ -270,7 +270,7 @@ func checkSingCardMods(pages *tview.Pages, lostmodname map[string]card.ResolveIn
 }
 
 // 检查所有卡片缺失mod
-func checkAllCardMods(pages *tview.Pages, lostmodname map[string]card.ResolveInfo) {
+func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname map[string]card.ResolveInfo) {
 	if IsNotExist("./ModsInfo.json") {
 		OKMsg(pages, "未找到ModsInfo.json\n请先生成游戏MOD数据文件", "主页")
 		return
@@ -297,53 +297,60 @@ func checkAllCardMods(pages *tview.Pages, lostmodname map[string]card.ResolveInf
 			json.Unmarshal(data, &modsinfo)
 			ext := path.Ext(cardpath) // 提取路径后缀进行比对
 			if ext == "" {
-				fs := GetAllFiles(`./`, ".png")
-				for _, v := range fs {
-					card, err := card.ReadCardKK(v)
-					if err != nil {
-						frc = append(frc, []string{cardpath, err.Error()})
-						continue
+				pages.SwitchToPage("MOD读取页")
+				textView.Clear()
+				go func() {
+
+					fs := GetAllFiles(cardpath, ".png")
+					for i, v := range fs {
+						card, err := card.ReadCardKK(v)
+						if err != nil {
+							frc = append(frc, []string{cardpath, err.Error()})
+							continue
+						}
+						cards = append(cards, card)
+						fmt.Fprintf(textView, "[%d/%d]%s\n", len(fs), i, v)
 					}
-					cards = append(cards, card)
-				}
-				for i, kkcard := range cards {
-					MsgTips(pages, fmt.Sprintf("正在从文件夹读取所有png文件(%d/%d)", len(cards), i))
-					v, Ok := kkcard.ExtendedList["com.bepis.sideloader.universalautoresolver"]
-					if Ok {
-					NextZipmod:
-						for _, zipmod := range v.RequiredZipmodGUIDs {
-							//是否找到了mod标志
-							// 遍历本地modinfo的数据，进行对比
-							for _, mod := range modsinfo {
-								//如果找到了,直接break终止遍历，就开始下一个Zipmod匹配
-								if mod.GUID == zipmod.GUID {
-									break NextZipmod
+					for _, kkcard := range cards {
+						v, Ok := kkcard.ExtendedList["com.bepis.sideloader.universalautoresolver"]
+						if Ok {
+						NextZipmod:
+							for _, zipmod := range v.RequiredZipmodGUIDs {
+								//是否找到了mod标志
+								// 遍历本地modinfo的数据，进行对比
+								for _, mod := range modsinfo {
+									//如果找到了,直接break终止遍历，就开始下一个Zipmod匹配
+									if mod.GUID == zipmod.GUID {
+										break NextZipmod
+									}
 								}
-							}
-							//没有break说明没有找到该mod,直接添加到map
-							if _, OK := lostmodname[zipmod.GUID]; !OK {
-								lostmodname[zipmod.GUID] = zipmod
+								//没有break说明没有找到该mod,直接添加到map
+								if _, OK := lostmodname[zipmod.GUID]; !OK {
+									lostmodname[zipmod.GUID] = zipmod
+								}
 							}
 						}
 					}
-				}
 
-				if len(lostmodname) != 0 { //当缺失mod数量不为0时，写入TXT，并弹出提示框
-					var p []string
-					//提取map中的缺失mod名称
-					for s := range lostmodname {
-						p = append(p, s)
+					if len(lostmodname) != 0 { //当缺失mod数量不为0时，写入TXT，并弹出提示框
+						var p []string
+						//提取map中的缺失mod名称
+						for s := range lostmodname {
+							p = append(p, s)
+						}
+						//写入TXT文件
+						os.WriteFile("mods.txt", []byte(strings.Join(p, "\n")), 0644)
+						if isWin() {
+							MsgWeb(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页", "查看缺失mod", "./mods.txt")
+							return
+						}
+						OKMsg(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页")
+					} else { // 缺失mod数量为0
+						OKMsg(pages, "检索完成，没有缺失的MOD!", "主页")
 					}
-					//写入TXT文件
-					os.WriteFile("mods.txt", []byte(strings.Join(p, "\n")), 0644)
-					if isWin() {
-						MsgWeb(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页", "查看缺失mod", "./mods.txt")
-						return
-					}
-					OKMsg(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页")
-				} else { // 缺失mod数量为0
-					OKMsg(pages, "检索完成，没有缺失的MOD!", "主页")
-				}
+					OKMsg(pages, "游戏mod信息统计完成，已写入ModesInfo.json文件!", "主页")
+				}()
+
 			} else { // 输入文件后缀错误
 				OKMsg(pages, "请输入PNG文件!", "路径输入")
 			}
