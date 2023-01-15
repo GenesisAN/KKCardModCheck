@@ -10,7 +10,7 @@ on:
 jobs:
 
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - name: Set up Go
@@ -22,8 +22,7 @@ jobs:
         go version
         go mod tidy
     - name: Build
-      run: |
-        go build -o KKCardModCheck.exe
+      run: goos=windows goarch=amd64 go build -o KKCardModCheck.exe
     - name: UploadFile
       uses: actions/upload-artifact@v3
       with:
