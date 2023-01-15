@@ -2,7 +2,7 @@
 
 用于检测Koikastu系列游戏的角色卡的MOD 工具
 
-
+### [下载地址](https://github.com/GenesisAN/KKCardModCheck/releases)
 
 ### 软件功能：
 
@@ -22,13 +22,18 @@
 
 ### 使用方式：
 
+0.按下对应按钮启动相关功能，或者使用小键盘上下，切换功能选项，按回车确认。如果要在多个输入框切换，可以按TAB，在弹窗界面选择按钮时，可以按左右切换选项
+
 1.将软件放入游戏目录下启动，此时会发出提示，用于生成start.bat文件
 
 2.双击生成的start.bat文件，来启动软件即可
 
 ### 闪退指南:
 如果软件进行某项操作时出现闪退问题，请在start.bat文件末尾，追加一行pause，然后再重新双击start.bat，启动软件，重新执行之前的操作
-这样在闪退后，会显示报错信息，而不是直接关闭cmd界面，然后可以将信息提交到issues
+这样在闪退后，会显示报错信息，而不是直接关闭cmd界面，然后可以将信息通过创建[issues](https://github.com/GenesisAN/KKCardModCheck/issues/new)来提交
+
+### 功能建议指南：
+如果有好的功能和idea，也可以通过创建[issues](https://github.com/GenesisAN/KKCardModCheck/issues/new)来向我提交建议
 
 ### FAQ：
 
