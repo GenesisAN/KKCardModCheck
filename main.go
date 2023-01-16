@@ -108,6 +108,12 @@ func main() {
 				mods = []ModXml{}
 				fs := GetAllFiles(`./`, ".zipmod")
 				all = len(fs)
+
+				if all == 0 {
+					OKMsg(pages, "未检测到任何mod!", "主页")
+					return
+				}
+
 				for i, v := range fs {
 					mod, err := ReadZip("", v, i)
 					if err != nil {
@@ -309,7 +315,7 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 							continue
 						}
 						cards = append(cards, card)
-						fmt.Fprintf(textView, "[%d/%d]%s\n", len(fs), i, v)
+						fmt.Fprintf(textView, "[%d/%d]%s\n", i+1, len(fs), v)
 					}
 					for _, kkcard := range cards {
 						v, Ok := kkcard.ExtendedList["com.bepis.sideloader.universalautoresolver"]
@@ -339,16 +345,19 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 							p = append(p, s)
 						}
 						//写入TXT文件
-						os.WriteFile("mods.txt", []byte(strings.Join(p, "\n")), 0644)
+						err := os.WriteFile("mods.txt", []byte(strings.Join(p, "\n")), 0777)
+						if err != nil {
+							MsgWeb(pages, fmt.Sprintf("检索完成，但生成mods.txt文件失败，原因:%s!", err.Error()), "主页", "查看该位置", "./")
+							return
+						}
 						if isWin() {
-							MsgWeb(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页", "查看缺失mod", "./mods.txt")
+							MsgWeb(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页", "查看缺失mod", "./")
 							return
 						}
 						OKMsg(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页")
 					} else { // 缺失mod数量为0
 						OKMsg(pages, "检索完成，没有缺失的MOD!", "主页")
 					}
-					OKMsg(pages, "游戏mod信息统计完成，已写入ModesInfo.json文件!", "主页")
 				}()
 
 			} else { // 输入文件后缀错误
