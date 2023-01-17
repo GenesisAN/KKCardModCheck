@@ -350,15 +350,19 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 						err := os.WriteFile("mods.txt", []byte(strings.Join(p, "\n")), 0777)
 						if err != nil {
 							MsgWeb(pages, fmt.Sprintf("检索完成，但生成mods.txt文件失败，原因:%s!", err.Error()), "主页", "查看该位置", "./")
+							app.Draw()
 						} else {
 							if isWin() {
 								MsgWeb(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页", "查看缺失mod", "./")
+								app.Draw()
 							} else {
 								OKMsg(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页")
+								app.Draw()
 							}
 						}
 					} else { // 缺失mod数量为0
 						OKMsg(pages, "检索完成，没有缺失的MOD!", "主页")
+						app.Draw()
 					}
 				}()
 
@@ -367,7 +371,6 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 			}
 		} else if key == tcell.KeyESC { // 如果按下ESC，返回主页
 			pages.SwitchToPage("主页")
-			app.Draw()
 		}
 
 	})
@@ -430,14 +433,12 @@ func checkCardUseMod(pages *tview.Pages) {
 									} else {
 										cp, mp = "", ""
 										pages.SwitchToPage("主页")
-										app.Draw()
 									}
 
 								}),
 							true,
 							false)
 						pages.SwitchToPage("弹窗")
-						app.Draw()
 						return
 					}
 				}
@@ -455,14 +456,11 @@ func checkCardUseMod(pages *tview.Pages) {
 						} else {
 							cp, mp = "", ""
 							pages.SwitchToPage("主页")
-							app.Draw()
 						}
-
 					}),
 				true,
 				false)
 			pages.SwitchToPage("弹窗")
-			app.Draw()
 		}).
 		AddButton("返回", func() { pages.SwitchToPage("主页") })
 	pages.AddPage("卡MOD比对",
@@ -481,7 +479,6 @@ func MsgTips(pages *tview.Pages, text string) {
 		true,
 		false)
 	pages.SwitchToPage("弹窗")
-	app.Draw()
 }
 
 func OKMsg(pages *tview.Pages, text string, page string) {
@@ -498,7 +495,7 @@ func OKMsg(pages *tview.Pages, text string, page string) {
 		true,
 		false)
 	pages.SwitchToPage("弹窗")
-	app.Draw()
+	//app.Draw()
 }
 
 func MsgWeb(pages *tview.Pages, text, page, button, url string) {
@@ -517,8 +514,6 @@ func MsgWeb(pages *tview.Pages, text, page, button, url string) {
 		true,
 		false)
 	pages.SwitchToPage("弹窗")
-	app.Draw()
-
 }
 
 func ReadZip(dst, src string, i int) (ModXml, error) {
