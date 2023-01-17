@@ -38,6 +38,8 @@ type ModXml struct {
 
 const version = "0.1.1"
 
+var app *tview.Application
+
 func main() {
 	if isWin() && len(os.Args) == 1 {
 		err := NoMoreDoubleClick()
@@ -48,7 +50,7 @@ func main() {
 		os.Exit(0)
 	}
 	//}
-	app := tview.NewApplication()
+	app = tview.NewApplication()
 	pages := tview.NewPages()
 	textView := tview.NewTextView().
 		SetDynamicColors(false).
@@ -281,6 +283,7 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 		OKMsg(pages, "未找到ModsInfo.json\n请先生成游戏MOD数据文件", "主页")
 		return
 	}
+	textView.Clear()
 	cd := tview.NewInputField().
 		SetLabel("输入卡片文件夹路径,或将文件夹拖入(回车确定，ESC返回): ").
 		SetFieldWidth(100)
@@ -302,11 +305,10 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 			var frc [][]string
 			json.Unmarshal(data, &modsinfo)
 			ext := path.Ext(cardpath) // 提取路径后缀进行比对
-			if ext == "" {
+			if ext == "" && cardpath != "" {
 				pages.SwitchToPage("MOD读取页")
 				textView.Clear()
 				go func() {
-
 					fs := GetAllFiles(cardpath, ".png")
 					for i, v := range fs {
 						card, err := card.ReadCardKK(v)
@@ -348,23 +350,24 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 						err := os.WriteFile("mods.txt", []byte(strings.Join(p, "\n")), 0777)
 						if err != nil {
 							MsgWeb(pages, fmt.Sprintf("检索完成，但生成mods.txt文件失败，原因:%s!", err.Error()), "主页", "查看该位置", "./")
-							return
+						} else {
+							if isWin() {
+								MsgWeb(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页", "查看缺失mod", "./")
+							} else {
+								OKMsg(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页")
+							}
 						}
-						if isWin() {
-							MsgWeb(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页", "查看缺失mod", "./")
-							return
-						}
-						OKMsg(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页")
 					} else { // 缺失mod数量为0
 						OKMsg(pages, "检索完成，没有缺失的MOD!", "主页")
 					}
 				}()
 
 			} else { // 输入文件后缀错误
-				OKMsg(pages, "请输入PNG文件!", "路径输入")
+				OKMsg(pages, "请输入路径!", "路径输入")
 			}
 		} else if key == tcell.KeyESC { // 如果按下ESC，返回主页
 			pages.SwitchToPage("主页")
+			app.Draw()
 		}
 
 	})
@@ -406,6 +409,7 @@ func checkCardUseMod(pages *tview.Pages) {
 			mod, err := ReadZip("", modpath, 0)
 			if err != nil {
 				OKMsg(pages, fmt.Sprintf("%s", err.Error()), "卡MOD比对")
+				app.Draw()
 				return
 			}
 			v, Ok := kkcard.ExtendedList["com.bepis.sideloader.universalautoresolver"]
@@ -426,12 +430,14 @@ func checkCardUseMod(pages *tview.Pages) {
 									} else {
 										cp, mp = "", ""
 										pages.SwitchToPage("主页")
+										app.Draw()
 									}
 
 								}),
 							true,
 							false)
 						pages.SwitchToPage("弹窗")
+						app.Draw()
 						return
 					}
 				}
@@ -449,12 +455,14 @@ func checkCardUseMod(pages *tview.Pages) {
 						} else {
 							cp, mp = "", ""
 							pages.SwitchToPage("主页")
+							app.Draw()
 						}
 
 					}),
 				true,
 				false)
 			pages.SwitchToPage("弹窗")
+			app.Draw()
 		}).
 		AddButton("返回", func() { pages.SwitchToPage("主页") })
 	pages.AddPage("卡MOD比对",
@@ -462,6 +470,7 @@ func checkCardUseMod(pages *tview.Pages) {
 		true,
 		false)
 	pages.SwitchToPage("卡MOD比对")
+	app.Draw()
 }
 
 func MsgTips(pages *tview.Pages, text string) {
@@ -472,6 +481,7 @@ func MsgTips(pages *tview.Pages, text string) {
 		true,
 		false)
 	pages.SwitchToPage("弹窗")
+	app.Draw()
 }
 
 func OKMsg(pages *tview.Pages, text string, page string) {
@@ -488,6 +498,7 @@ func OKMsg(pages *tview.Pages, text string, page string) {
 		true,
 		false)
 	pages.SwitchToPage("弹窗")
+	app.Draw()
 }
 
 func MsgWeb(pages *tview.Pages, text, page, button, url string) {
@@ -506,6 +517,8 @@ func MsgWeb(pages *tview.Pages, text, page, button, url string) {
 		true,
 		false)
 	pages.SwitchToPage("弹窗")
+	app.Draw()
+
 }
 
 func ReadZip(dst, src string, i int) (ModXml, error) {
