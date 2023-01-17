@@ -22,7 +22,7 @@ jobs:
         go version
         go mod tidy
     - name: Build
-      run: GOOS=windows GOARCH=amd64 go build -ldflags "-s -w" -o KKCardModCheck.exe -trimpath
+      run: GOOS=windows GOARCH=amd64 go build -ldflags "-s -w" -o KKCardModCheck_win_amd64.exe -trimpath
     - name: UploadFile
       uses: actions/upload-artifact@v3
       with:
