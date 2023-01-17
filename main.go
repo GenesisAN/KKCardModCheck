@@ -258,7 +258,7 @@ func checkSingCardMods(pages *tview.Pages, lostmodname map[string]card.ResolveIn
 					}
 					//写入TXT文件
 					os.WriteFile("mods.txt", []byte(strings.Join(p, "\n")), 0644)
-					OKMsg(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页")
+					MsgWeb(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页", "查看缺失mod", "mods.txt")
 				} else { // 缺失mod数量为0
 					OKMsg(pages, "检索完成，没有缺失的MOD!", "主页")
 				}
