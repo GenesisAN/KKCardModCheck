@@ -236,23 +236,23 @@ func checkSingCardMods(pages *tview.Pages, lostmodname map[string]card.ResolveIn
 				if Ok {
 				NextZipmod:
 					for _, zipmod := range v.RequiredZipmodGUIDs {
-						//是否找到了mod标志
+						// 是否找到了mod标志
 						// 遍历本地modinfo的数据，进行对比
 						for _, mod := range modsinfo {
-							//如果找到了,直接break终止遍历，就开始下一个Zipmod匹配
+							// 如果找到了,直接break终止遍历，就开始下一个Zipmod匹配
 							if mod.GUID == zipmod.GUID {
 								break NextZipmod
 							}
 						}
-						//没有break说明没有找到该mod,直接添加到map
+						// 没有break说明没有找到该mod,直接添加到map
 						if _, OK := lostmodname[zipmod.GUID]; !OK {
 							lostmodname[zipmod.GUID] = zipmod
 						}
 					}
 				}
-				if len(lostmodname) != 0 { //当缺失mod数量不为0时，写入TXT，并弹出提示框
+				if len(lostmodname) != 0 { // 当缺失mod数量不为0时，写入TXT，并弹出提示框
 					var p []string
-					//提取map中的缺失mod名称
+					// 提取map中的缺失mod名称
 					for s := range lostmodname {
 						p = append(p, s)
 					}
@@ -349,11 +349,11 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 						//写入TXT文件
 						err := os.WriteFile("mods.txt", []byte(strings.Join(p, "\n")), 0777)
 						if err != nil {
-							MsgWeb(pages, fmt.Sprintf("检索完成，但生成mods.txt文件失败，原因:%s!", err.Error()), "主页", "查看该位置", "./")
+							OKMsg(pages, fmt.Sprintf("检索完成，但生成mods.txt文件失败，原因:%s!", err.Error()), "主页")
 							app.Draw()
 						} else {
 							if isWin() {
-								MsgWeb(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页", "查看缺失mod", "./")
+								MsgWeb(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页", "查看缺失mod", "mods.txt")
 								app.Draw()
 							} else {
 								OKMsg(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页")
