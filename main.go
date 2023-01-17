@@ -594,7 +594,7 @@ func NoMoreDoubleClick() error {
 
 	ex, _ := os.Executable()
 	exPath := filepath.Base(ex)
-	_, err = f.WriteString("%Created by KKCardModCheck. DO NOT EDIT ME!%\nchcp 65001 \n\"" + exPath + "\" -s")
+	_, err = f.WriteString("%Created by KKCardModCheck. DO NOT EDIT ME!%\nchcp 65001 \n\"" + exPath + "\" -s\npause")
 	if err != nil {
 		fmt.Printf("写入启动.bat失败: %v", err)
 		return err
