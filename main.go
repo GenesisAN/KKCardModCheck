@@ -456,7 +456,6 @@ func checkCardUseMod(pages *tview.Pages) {
 		true,
 		false)
 	pages.SwitchToPage("卡MOD比对")
-	app.Draw()
 }
 
 func MsgTips(pages *tview.Pages, text string) {
