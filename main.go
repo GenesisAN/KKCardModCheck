@@ -384,7 +384,13 @@ var cp, mp string
 func checkCardUseMod(pages *tview.Pages) {
 	f := tview.NewForm().
 		AddTextView("Tips", "按Tab可切换选项，输入框可以拖入文件夹,或者png来快速填写,", 100, 1, true, false).
-		AddInputField("MOD路径", mp, 100, nil, func(text string) { mp = text }).
+		AddInputField("MOD路径", mp, 100, func(textToCheck string, lastChar rune) bool {
+			fmt.Println("ESC")
+			return false
+		}, func(text string) { mp = text }).
+		SetCancelFunc(func() {
+			pages.SwitchToPage("主页")
+		}).
 		AddInputField("卡片路径", cp, 100, nil, func(text string) { cp = text }).
 		AddButton("比对", func() {
 			// 处理传入路径双引号处理
