@@ -13,23 +13,45 @@ type KoiCard struct {
 	CharParmeter *KoiChaFileParameter
 }
 
-func ParseKoiChara(buff *bytes.Buffer) KoiCard {
+func ParseKoiChara(buff *bytes.Buffer) (KoiCard, error) {
 	kc := KoiCard{&Card{}, &KoiChaFileParameter{}}
-	//版本号
-	versionlen := buff.Next(1)
-	buff.Next(int(versionlen[0]))
-	//version := string(buff.Next(int(versionlen[0])))
-	kc.LoadVersion = "123"
+
+	//版本号	//buff.Next(int(versionlen[0]))
+	versionlen, err := BufRead(buff, 1, "读取失败：卡片版本无法识别")
+	if err != nil {
+		return kc, err
+	}
+	_, err = BufRead(buff, int(versionlen[0]), "读取失败：卡片版本无法读取")
+	if err != nil {
+		return kc, err
+	}
+
+	//kc.LoadVersion = "123"
 	//fmt.Println("版本:", version)
-	faceLength := binary.LittleEndian.Uint32(buff.Next(4))
-	buff.Next(int(faceLength))
+	FLBuf, err := BufRead(buff, 4, "读取失败：卡片头长度无法识别")
+	if err != nil {
+		return kc, err
+	}
+	faceLength := binary.LittleEndian.Uint32(FLBuf)
 
-	var count = binary.LittleEndian.Uint32(buff.Next(4))
-	var bytes = buff.Next(int(count))
+	_, err = BufRead(buff, int(faceLength), "读取失败：卡片头长度无法识别")
+	if err != nil {
+		return kc, err
+	}
 
+	countBuf, err := BufRead(buff, 4, "读取失败：卡片头长度无法识别")
+	if err != nil {
+		return kc, err
+	}
+	var count = binary.LittleEndian.Uint32(countBuf)
+
+	bytes, err := BufRead(buff, int(count), "读取失败：卡片头无法读取")
+	if err != nil {
+		return kc, err
+	}
 	//BlockHeader 获取卡片结构头
 	var bh map[string][]interface{}
-	err := msgpack.Unmarshal(bytes, &bh)
+	err = msgpack.Unmarshal(bytes, &bh)
 	if err != nil {
 		fmt.Print(err)
 	}
@@ -117,7 +139,7 @@ func ParseKoiChara(buff *bytes.Buffer) KoiCard {
 		//exDataEx = append(exDataEx, &dex)
 	}
 	kc.ExtendedList = exDataEx
-	return kc
+	return kc, nil
 }
 
 func DeserializeObjects(data *PluginData) PluginDataEx {
