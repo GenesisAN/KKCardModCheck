@@ -480,16 +480,20 @@ func tryGetBDMD5(pages *tview.Pages) {
 			app.Draw()
 			return
 		}
+
 		mods := strings.Split(string(data), "\n")
 		var bdmd5 []string
+		var nobdmd5 []string
 		count := len(mods)
 		for i, i2 := range mods {
 			MsgTips(pages, fmt.Sprintf("正在向服务器请求mod信息[%d/%d]", i, count))
 			app.Draw()
-			data, err := getData(fmt.Sprintf("https://127.0.0.1:3000/api/v1/mods/search?s=%s&p=0&t=0", i2), map[string]string{"Accept": "application/json"})
+			data, err := getData(fmt.Sprintf("https://anweb.asuscomm.com:3000/api/v1/mods/search?s=%s&p=0&t=0", i2), map[string]string{"Accept": "application/json"})
 			if err != nil {
 				//fmt.Println(err.Error())
-				continue
+				OKMsg(pages, fmt.Sprintf("请求失败:%s", err.Error()), "主页")
+				app.Draw()
+				return
 			}
 			var res Response
 			json.Unmarshal(data, &res)
@@ -498,12 +502,30 @@ func tryGetBDMD5(pages *tview.Pages) {
 					bdmd5 = append(bdmd5, res.Data[0].BDMD5)
 				}
 			} else {
+				nobdmd5 = append(nobdmd5, i2)
 				continue
 			}
 		}
 		//写入TXT文件
 		os.WriteFile("bdmd5s.txt", []byte(strings.Join(bdmd5, "\n")), 0644)
-		MsgWeb(pages, fmt.Sprintf("检索完成，已生成bdmd5s.txt文件，共从服务器匹配到%d个mod的秒传下载地址!", len(bdmd5)), "主页", "查看秒传文件", "bdmd5s.txt")
+		os.WriteFile("nobdmd5s.txt", []byte(strings.Join(nobdmd5, "\n")), 0644)
+		pages.AddPage("弹窗",
+			tview.NewModal().
+				SetBackgroundColor(tcell.ColorBlack).
+				SetText(fmt.Sprintf("检索完成，已生成bdmd5s.txt文件，共从服务器匹配到（%d/%d）个mod的秒传下载地址!", len(bdmd5), len(mods))).
+				AddButtons([]string{"OK", "查看秒传文件", "查看无下载地址的mod"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					if buttonIndex == 0 {
+						pages.SwitchToPage("主页")
+					} else if buttonIndex == 1 {
+						exec.Command("cmd", "/C", "start", "bdmd5s.txt").Start()
+					} else {
+						exec.Command("cmd", "/C", "start", "nobdmd5s.txt").Start()
+					}
+				}),
+			true,
+			false)
+		pages.SwitchToPage("弹窗")
 		app.Draw()
 	}()
 }
