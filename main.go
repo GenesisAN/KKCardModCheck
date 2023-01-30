@@ -49,7 +49,9 @@ func main() {
 		}
 		os.Exit(0)
 	}
-	//}
+	// 主线程发生恐慌时清空控制台，让控制台能更好的显示报错信息，只对主线程生效
+	defer RecoverClearCMD()
+
 	app = tview.NewApplication()
 	pages := tview.NewPages()
 	textView := tview.NewTextView().
@@ -59,27 +61,6 @@ func main() {
 			app.Draw()
 		})
 	var all int
-	//numSelections := 0
-	//textView.SetDoneFunc(func(key tcell.Key) {
-	//	currentSelection := textView.GetHighlights()
-	//	if key == tcell.KeyEnter {
-	//		if len(currentSelection) > 0 {
-	//			textView.Highlight()
-	//		} else {
-	//			textView.Highlight("0").ScrollToHighlight()
-	//		}
-	//	} else if len(currentSelection) > 0 {
-	//		index, _ := strconv.Atoi(currentSelection[0])
-	//		if key == tcell.KeyTab {
-	//			index = (index + 1) % numSelections
-	//		} else if key == tcell.KeyBacktab {
-	//			index = (index - 1 + numSelections) % numSelections
-	//		} else {
-	//			return
-	//		}
-	//		textView.Highlight(strconv.Itoa(index)).ScrollToHighlight()
-	//	}
-	//})
 	// 更新检测
 
 	githubTag := &latest.GithubTag{
@@ -196,6 +177,13 @@ func main() {
 
 	if err := app.SetRoot(grid, true).SetFocus(pages).Run(); err != nil {
 		panic(err)
+	}
+}
+
+// 恐慌时清空CMD界面
+func RecoverClearCMD() {
+	if x := recover(); x != nil {
+		fmt.Print("\033[H\033[2J")
 	}
 }
 
