@@ -27,4 +27,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: KKCardModCheck_win_amd64.exe
-        path: ./KKCardModCheck.exe
+        path: ./KKCardModCheck_win_amd64.exe
