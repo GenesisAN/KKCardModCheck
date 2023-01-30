@@ -3,20 +3,25 @@ package main
 import (
 	card "KKCardModCheck/card"
 	"archive/zip"
+	"crypto/tls"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"github.com/gdamore/tcell/v2"
+	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/checksum"
 	"github.com/rivo/tview"
 	"github.com/tcnksm/go-latest"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -123,8 +128,11 @@ func main() {
 		AddItem("卡片MOD匹配", "查看下载的MOD是否是卡片所使用的Mod", 'p', func() {
 			checkCardUseMod(pages)
 		}).
-		AddItem("[未完成]上传Mod到百度云，并将秒传地址提交到服务器", "该功能用于补充服务器没有的mod信息，为其他玩家造福", 'u', nil).
-		AddItem("[未完成]从服务器获取缺失mod的秒传信息", "将缺失的mod名称，在服务器数据库中检索，尝试获取它的秒传地址", 'd', nil)
+		AddItem("[未完成]从本机分享mod信息到服务器", "该功能用于获取本地存在，但服务器没有的mod，并调用BadiduPCS.exe上传到百度云，造福其他用户", 'u', nil).
+		AddItem("<试验性>从服务器获取缺失mod的秒传信息", "尝试获取缺失mod的秒传地址，自己通过百度云下载", 'd', func() {
+			tryGetBDMD5(pages)
+		}).
+		AddItem("[未完成]用BadiduPCS直接下载缺失mod", "尝试获取服务器中缺失mod的秒传地址，并调用BadiduPCS.exe下载", 'd', nil)
 
 	if res.Outdated {
 		list.AddItem(fmt.Sprintf("下载新版本:v%s", res.Current), "喂!三点几，饮茶先啦！(哼啊啊啊啊...)", 'a', func() {
@@ -372,6 +380,7 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 // 卡片路径，mod路径
 var cp, mp string
 
+// 检查卡片使用的mod
 func checkCardUseMod(pages *tview.Pages) {
 	f := tview.NewForm().
 		AddTextView("Tips", "按Tab可切换选项，输入框可以拖入文件夹,或者png来快速填写,", 100, 1, true, false).
@@ -458,14 +467,98 @@ func checkCardUseMod(pages *tview.Pages) {
 	pages.SwitchToPage("卡MOD比对")
 }
 
-func MsgTips(pages *tview.Pages, text string) {
-	pages.AddPage("弹窗",
-		tview.NewModal().
-			SetBackgroundColor(tcell.ColorBlack).
-			SetText(text),
-		true,
-		false)
-	pages.SwitchToPage("弹窗")
+func tryGetBDMD5(pages *tview.Pages) {
+	if IsNotExist("./mods.txt") {
+		OKMsg(pages, "未找到mods.txt\n请先检查卡片缺失mod，生成mods.txt信息后再尝试", "主页")
+		return
+	}
+	go func() {
+		data, err := os.ReadFile("./mods.txt")
+		if err != nil {
+			OKMsg(pages, fmt.Sprintf("文件读取失败:%s", err.Error()), "路径输入")
+			app.Draw()
+			return
+		}
+		mods := strings.Split(string(data), "\n")
+		var bdmd5 []string
+		count := len(mods)
+		for i, i2 := range mods {
+			MsgTips(pages, fmt.Sprintf("正在向服务器请求mod信息[%d/%d]", i, count))
+			app.Draw()
+			data, err := getData(fmt.Sprintf("https://127.0.0.1:3000/api/v1/mods/search?s=%s&p=0&t=0", i2), map[string]string{"Accept": "application/json"})
+			if err != nil {
+				//fmt.Println(err.Error())
+				continue
+			}
+			var res Response
+			json.Unmarshal(data, &res)
+			if res.Code == 200 {
+				if res.Data[0].GUID == i2 /*&& res.Data[0].Upload*/ {
+					bdmd5 = append(bdmd5, res.Data[0].BDMD5)
+				}
+			} else {
+				continue
+			}
+		}
+		//写入TXT文件
+		os.WriteFile("bdmd5s.txt", []byte(strings.Join(bdmd5, "\n")), 0644)
+		MsgWeb(pages, fmt.Sprintf("检索完成，已生成bdmd5s.txt文件，共从服务器匹配到%d个mod的秒传下载地址!", len(bdmd5)), "主页", "查看秒传文件", "bdmd5s.txt")
+		app.Draw()
+	}()
+}
+
+type Response struct {
+	//错误代码
+	Code int `json:"code"`
+	//数据
+	Data []ModInfo `json:"data,omitempty"`
+	//返回消息
+	Msg string `json:"msg"`
+	//错误信息
+	Error string `json:"error,omitempty"`
+}
+
+type ModInfo struct {
+	GUID        string
+	Version     string
+	Name        string
+	Author      string
+	Description string
+	Website     string
+	Game        string
+	BDMD5       string `gorm:"uniqueIndex"`
+	Upload      bool
+}
+
+func getData(url string, head map[string]string) (data []byte, err error) {
+	//提交请求
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	reqest, err := http.NewRequest("GET", url, nil)
+	//增加header选项
+	for i, v := range head {
+		reqest.Header.Add(i, v)
+	}
+	if err != nil {
+		return nil, err
+	}
+	//处理返回结果
+	//发起http请求的client实例
+	client := &http.Client{Transport: tr}
+	response, err := client.Do(reqest)
+	if err != nil {
+		return nil, err
+	}
+	data, err = io.ReadAll(response.Body)
+	response.Body.Close()
+	return data, err
+	//func jsonSave(v interface{}, path string) {
+	//	f, _ := os.Create(path)
+	//	defer f.Close()
+	//	json.NewEncoder(f).Encode(v)
+	//}
+
 }
 
 func OKMsg(pages *tview.Pages, text string, page string) {
@@ -503,12 +596,35 @@ func MsgWeb(pages *tview.Pages, text, page, button, url string) {
 	pages.SwitchToPage("弹窗")
 }
 
+func MsgTips(pages *tview.Pages, text string) {
+	pages.AddPage("弹窗",
+		tview.NewModal().
+			SetBackgroundColor(tcell.ColorBlack).
+			SetText(text),
+		true,
+		false)
+	pages.SwitchToPage("弹窗")
+}
+
 func ReadZip(dst, src string, i int) (ModXml, error) {
 	mod := ModXml{}
+	//===============BDMD5计算===================
+	lp, err := checksum.GetFileSum(src, checksum.CHECKSUM_MD5|checksum.CHECKSUM_SLICE_MD5|checksum.CHECKSUM_CRC32)
+	if err != nil {
+		return mod, err
+	}
+	strLength, strMd5, strSliceMd5 := strconv.FormatInt(lp.Length, 10), hex.EncodeToString(lp.MD5), hex.EncodeToString(lp.SliceMD5)
+	fileName := filepath.Base(src)
+	regFileName := strings.Replace(fileName, " ", "_", -1)
+	regFileName = strings.Replace(regFileName, "#", "_", -1)
+	bdmd5 := strMd5 + "#" + strSliceMd5 + "#" + strLength + "#" + regFileName
+	//==========================================
+
 	zr, err := zip.OpenReader(src) //打开modzip
 	if err != nil {
 		return mod, errors.New(fmt.Sprintf("打开zip失败:%s", err.Error()))
 	}
+
 	for _, v := range zr.File { //遍历里面的文件
 		if v.FileInfo().Name() == "manifest.xml" { //找到manifest.xml
 			fr, _ := v.Open()         //打开它
@@ -518,13 +634,13 @@ func ReadZip(dst, src string, i int) (ModXml, error) {
 			if err != nil {
 				return mod, errors.New(fmt.Sprintf("读取zipmod信息失败:%s", err.Error()))
 			}
-			//md5c, errc := GetModMD5Code("sf", src) //获取秒传链接
-			//if err != nil {
-			//	fmt.Errorf(errc.Error())
-			//	return mod, err
-			//}
-			//mod.BDMD5 = md5c
-			mod.Path = src
+
+			if err != nil {
+				fmt.Errorf(err.Error())
+				return mod, err
+			}
+			mod.BDMD5 = bdmd5
+			mod.Path = strings.Replace(src, "mods\\", "", -1)
 		}
 	}
 	return mod, err
