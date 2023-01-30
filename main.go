@@ -117,6 +117,7 @@ func main() {
 				}
 				os.WriteFile("./ModsInfo.json", byt, 0644)
 				OKMsg(pages, "游戏mod信息统计完成，已写入ModesInfo.json文件!", "主页")
+				app.Draw()
 			}()
 		}).
 		AddItem("批量检查卡片缺失MOD", "输入卡片文件夹和MOD数据文件进行对比，统计所有卡片缺失的Mod", 'f', func() {
