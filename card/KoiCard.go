@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/mitchellh/mapstructure"
 	"github.com/vmihailenco/msgpack/v5"
+	"sort"
 )
 
 type KoiCard struct {
@@ -55,38 +56,47 @@ func ParseKoiChara(buff *bytes.Buffer) (KoiCard, error) {
 	if err != nil {
 		fmt.Print(err)
 	}
-	var bhinfos []BlockHeaderInfo
+	var bhinfos []*BlockHeaderInfo
 	for s, infov := range bh {
 		if s == "lstInfo" {
 			for _, v := range infov {
 				var info BlockHeaderInfo
 				mapstructure.Decode(v, &info)
-				bhinfos = append(bhinfos, info)
+				bhinfos = append(bhinfos, &info)
 			}
 		}
 	}
+
+	sort.SliceStable(bhinfos, func(i, j int) bool {
+		return bhinfos[i].Pos < bhinfos[j].Pos
+	})
+
 	buff.Next(8)
 	//num2 := binary.LittleEndian.Uint64(buff.Next(8)) //int64
 	//fmt.Print(num2)
 	//cap := buff.Cap()
 	//len := buff.Len()
 	//pos := cap - len - 1
-
-	var P_Pos, P_Size, K_Pos int
+	hdbyt := make(map[string]*BlockHeaderInfo)
+	for _, v := range bhinfos {
+		cBuf, err := BufRead(buff, int(v.Size), "读取失败："+v.Name)
+		if err != nil {
+			return kc, err
+		}
+		v.Data = cBuf
+		hdbyt[v.Name] = v
+	}
 	var parameterBytes, extDataByte []byte
 	//fmt.Println("卡片头部信息:")
 	//遍历 头部信息，获取Parameter位置
-	for _, v := range bhinfos {
-		if v.Name == "Parameter" {
-			if v.Version == "0.0.5" {
-				P_Pos = int(v.Pos)
-				P_Size = int(v.Size)
-				buff.Next(P_Pos)
-				parameterBytes = buff.Next(int(v.Size))
-			}
+	//for _, v := range bhinfos {
+	if par, ok := hdbyt["Parameter"]; ok {
+		if par.Version == "0.0.5" {
+			parameterBytes = par.Data
 		}
-		//fmt.Println(v.Name, "    [Pos:", int(v.Pos), "Size:", int(v.Size), "]")
 	}
+	//fmt.Println(v.Name, "    [Pos:", int(v.Pos), "Size:", int(v.Size), "]")
+	//}
 
 	//根据位置信息，反序列化 MsgPack 得到 KoiChaFileParameter
 	var Cfp KoiChaFileParameter
@@ -97,14 +107,8 @@ func ParseKoiChara(buff *bytes.Buffer) (KoiCard, error) {
 	kc.CharParmeter = &Cfp
 	kc.ChaFileParameterEx(kc)
 
-	//遍历头部信息，获取KKEx位置
-	for _, v := range bhinfos {
-		if v.Name == "KKEx" {
-			K_Pos = int(v.Pos)
-			buff.Next(K_Pos - (P_Size + P_Pos))
-			extDataByte = buff.Next(int(v.Size))
-			//mt.Print(extDataByte)
-		}
+	if par, ok := hdbyt["KKEx"]; ok {
+		extDataByte = par.Data
 	}
 
 	//根据KKEx位置信息，反序列化 得到 extDataO

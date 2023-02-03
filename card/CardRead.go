@@ -12,6 +12,7 @@ type BlockHeaderInfo struct {
 	Version string `json:"version"` //版本
 	Pos     int64  `json:"pos"`     //坐标
 	Size    int64  `json:"size"`    //大小
+	Data    []byte
 }
 
 var Parameter = "Parameter"
