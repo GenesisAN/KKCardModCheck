@@ -54,6 +54,12 @@ func main() {
 		}
 		os.Exit(0)
 	}
+
+	if IsNotExist("./Koikatu.exe") {
+		fmt.Printf("请将软件放入Koikatu游戏根目录后再运行（暂时不支持在KKS下运行）")
+		os.Exit(0)
+	}
+
 	// 主线程发生恐慌时清空控制台，让控制台能更好的显示报错信息，只对主线程生效
 	defer RecoverClearCMD()
 
