@@ -131,7 +131,6 @@ func ParseKoiChara(buff *bytes.Buffer) (KoiCard, error) {
 			exData[S] = &pd
 		}
 	}
-
 	// 遍历exData提取RequiredZipmodGUIDs
 	exDataEx := make(map[string]*PluginDataEx)
 	for s, data := range exData {

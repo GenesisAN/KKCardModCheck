@@ -185,6 +185,7 @@ func main() {
 	//AddItem(sideBar, 1, 2, 1, 1, 0, 100, false)
 
 	if err := app.SetRoot(grid, true).SetFocus(pages).Run(); err != nil {
+		fmt.Print("\033[H\033[2J")
 		panic(err)
 	}
 }
