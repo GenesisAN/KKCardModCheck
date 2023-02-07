@@ -1,7 +1,9 @@
 package main
 
 import (
-	card "KKCardModCheck/card"
+	card "KKCardModCheck/IllusionsCard"
+	"KKCardModCheck/IllusionsCard/Base"
+	"KKCardModCheck/IllusionsCard/KK"
 	"archive/zip"
 	"crypto/tls"
 	"encoding/hex"
@@ -12,7 +14,6 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/checksum"
 	"github.com/rivo/tview"
-	"github.com/tcnksm/go-latest"
 	"io"
 	"log"
 	"net/http"
@@ -93,7 +94,7 @@ func main() {
 
 	textView.SetBorder(true)
 	mods := []ModXml{}
-	lostmodname := make(map[string]card.ResolveInfo)
+	lostmodname := make(map[string]Base.ResolveInfo)
 	list := tview.NewList().
 		AddItem("生成游戏MOD数据文件", "生成的数据保存在本软件目录下的ModsInfo.json文件内", 'b', func() {
 			pages.SwitchToPage("MOD读取页")
@@ -204,7 +205,7 @@ func RecoverClearCMD() {
 }
 
 // 检查单个卡片缺失mod
-func checkSingCardMods(pages *tview.Pages, lostmodname map[string]card.ResolveInfo) {
+func checkSingCardMods(pages *tview.Pages, lostmodname map[string]Base.ResolveInfo) {
 	if IsNotExist("./ModsInfo.json") {
 		OKMsg(pages, "未找到ModsInfo.json\n请先生成游戏MOD数据文件", "主页")
 		return
@@ -216,7 +217,7 @@ func checkSingCardMods(pages *tview.Pages, lostmodname map[string]card.ResolveIn
 		// 按下回车的处理
 		if key == tcell.KeyEnter {
 			// 初始化缺失mod map
-			lostmodname = make(map[string]card.ResolveInfo)
+			lostmodname = make(map[string]Base.ResolveInfo)
 
 			// ModsInfo文件读取
 			data, err := os.ReadFile("./ModsInfo.json")
@@ -282,7 +283,7 @@ func checkSingCardMods(pages *tview.Pages, lostmodname map[string]card.ResolveIn
 }
 
 // 检查所有卡片缺失mod
-func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname map[string]card.ResolveInfo) {
+func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname map[string]Base.ResolveInfo) {
 	if IsNotExist("./ModsInfo.json") {
 		OKMsg(pages, "未找到ModsInfo.json\n请先生成游戏MOD数据文件", "主页")
 		return
@@ -295,7 +296,7 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 		// 按下回车的处理
 		if key == tcell.KeyEnter {
 			// 初始化缺失mod map
-			lostmodname = make(map[string]card.ResolveInfo)
+			lostmodname = make(map[string]Base.ResolveInfo)
 			// 处理传入路径双引号处理
 			cardpath := strings.Replace(cd.GetText(), "\"", "", -1)
 			// ModsInfo文件读取
@@ -304,7 +305,7 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 				OKMsg(pages, fmt.Sprintf("文件读取失败:%s", err.Error()), "路径输入")
 			}
 			// 反序列化Modsinfo.json的数据
-			var cards []*card.KoiCard
+			var cards []*KK.KoiCard
 			var modsinfo []ModXml
 			var frc [][]string
 			json.Unmarshal(data, &modsinfo)

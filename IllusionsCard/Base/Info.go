@@ -1,6 +1,4 @@
-package card
-
-import "bytes"
+package Base
 
 var PngEndChunk = []byte{0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82}
 
@@ -11,8 +9,3 @@ var PluginGUID = "com.bepis.bepinex.sideloader"
 var UARExtID = "com.bepis.sideloader.universalautoresolver"
 
 var UARExtIDOld = "EC.Core.Sideloader.UniversalAutoResolver"
-
-func get_png(file []byte) int {
-	res1 := bytes.Index(file, PngEndChunk)
-	return res1
-}
