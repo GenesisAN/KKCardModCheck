@@ -1,4 +1,4 @@
-package KK
+package Koikatsu
 
 import (
 	"fmt"

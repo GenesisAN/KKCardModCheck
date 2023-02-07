@@ -2,7 +2,7 @@ package IllusionsCard
 
 import (
 	"KKCardModCheck/IllusionsCard/Base"
-	"KKCardModCheck/IllusionsCard/KK"
+	"KKCardModCheck/IllusionsCard/Koikatsu"
 	"KKCardModCheck/IllusionsCard/Tools"
 	"bytes"
 	"errors"
@@ -14,7 +14,7 @@ var Parameter = "Parameter"
 var KKEx = "KKEx"
 
 // ReadCardKK 读取KK的卡片,传入卡7片路径
-func ReadCardKK(path string) (*KK.KoiCard, error) {
+func ReadCardKK(path string) (*Koikatsu.KoiCard, error) {
 	path = strings.Replace(path, "\\", "/", -1)
 	//fmt.Println(path)
 	//提取文件名
@@ -59,7 +59,7 @@ func ReadCardKK(path string) (*KK.KoiCard, error) {
 	cardtype := string(cardtypebyte)
 	//fmt.Println("卡片类型:", cardtype)
 	//fmt.Println("封面大小:", pngend)
-	card, err := KK.ParseKoiChara(buffer)
+	card, err := Koikatsu.ParseKoiChara(buffer)
 	if err != nil {
 		return nil, err
 	}

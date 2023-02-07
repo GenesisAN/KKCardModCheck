@@ -3,7 +3,7 @@ package main
 import (
 	card "KKCardModCheck/IllusionsCard"
 	"KKCardModCheck/IllusionsCard/Base"
-	"KKCardModCheck/IllusionsCard/KK"
+	"KKCardModCheck/IllusionsCard/Koikatsu"
 	"archive/zip"
 	"crypto/tls"
 	"encoding/hex"
@@ -306,7 +306,7 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 				OKMsg(pages, fmt.Sprintf("文件读取失败:%s", err.Error()), "路径输入")
 			}
 			// 反序列化Modsinfo.json的数据
-			var cards []*KK.KoiCard
+			var cards []*Koikatsu.KoiCard
 			var modsinfo []ModXml
 			var frc [][]string
 			json.Unmarshal(data, &modsinfo)
