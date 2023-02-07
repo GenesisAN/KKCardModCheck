@@ -14,6 +14,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/checksum"
 	"github.com/rivo/tview"
+	"github.com/tcnksm/go-latest"
 	"io"
 	"log"
 	"net/http"
