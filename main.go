@@ -1,9 +1,6 @@
 package main
 
 import (
-	card "KKCardModCheck/IllusionsCard"
-	"KKCardModCheck/IllusionsCard/Base"
-	"KKCardModCheck/IllusionsCard/Koikatsu"
 	"archive/zip"
 	"crypto/tls"
 	"encoding/hex"
@@ -11,6 +8,9 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	card "github.com/GenesisAN/illusionsCard"
+	"github.com/GenesisAN/illusionsCard/Base"
+	"github.com/GenesisAN/illusionsCard/Koikatsu"
 	"github.com/gdamore/tcell/v2"
 	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/checksum"
 	"github.com/rivo/tview"
@@ -233,7 +233,7 @@ func checkSingCardMods(pages *tview.Pages, lostmodname map[string]Base.ResolveIn
 			ext := path.Ext(cardpath) // 提取路径后缀进行比对
 			if ext == ".png" {
 				// 读取KK卡片数据
-				kkcard, err := card.ReadCardKK(cardpath)
+				kkcard, err := card.ReadKK(cardpath)
 				if err != nil {
 					OKMsg(pages, fmt.Sprintf("%s", err.Error()), "路径输入")
 					return
@@ -317,7 +317,7 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 				go func() {
 					fs := GetAllFiles(cardpath, ".png")
 					for i, v := range fs {
-						card, err := card.ReadCardKK(v)
+						card, err := card.ReadKK(v)
 						if err != nil {
 							frc = append(frc, []string{cardpath, err.Error()})
 							continue
@@ -412,7 +412,7 @@ func checkCardUseMod(pages *tview.Pages) {
 				return
 			}
 			// 读取KK卡片数据
-			kkcard, err := card.ReadCardKK(cardpath)
+			kkcard, err := card.ReadKK(cardpath)
 			if err != nil {
 				OKMsg(pages, fmt.Sprintf("%s", err.Error()), "卡MOD比对")
 				return

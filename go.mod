@@ -3,12 +3,11 @@ module KKCardModCheck
 go 1.19
 
 require (
+	github.com/GenesisAN/illusionsCard v0.1.0-beta.1
 	github.com/gdamore/tcell/v2 v2.5.3
-	github.com/mitchellh/mapstructure v1.5.0
 	github.com/qjfoidnh/BaiduPCS-Go v0.0.0-20230102141148-e21feafc1e2d
 	github.com/rivo/tview v0.0.0-20230104153304-892d1a2eb0da
 	github.com/tcnksm/go-latest v0.0.0-20170313132115-e3007ae9052e
-	github.com/tinylib/msgp v1.1.8
 )
 
 require (
@@ -36,6 +35,7 @@ require (
 	github.com/tidwall/gjson v1.6.4 // indirect
 	github.com/tidwall/match v1.0.1 // indirect
 	github.com/tidwall/pretty v1.0.2 // indirect
+	github.com/tinylib/msgp v1.1.8 // indirect
 	golang.org/x/net v0.3.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/term v0.3.0 // indirect
