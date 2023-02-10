@@ -137,14 +137,17 @@ func main() {
 		AddItem("卡片MOD匹配", "查看下载的MOD是否是卡片所使用的Mod", 'p', func() {
 			checkCardUseMod(pages)
 		}).
-		AddItem("[未完成]从本机分享mod信息到服务器", "该功能用于获取本地存在，但服务器没有的mod，并调用BadiduPCS.exe上传到百度云，造福其他用户", 'u', nil).
-		AddItem("<试验性>从服务器获取缺失mod的秒传信息", "尝试获取缺失mod的秒传地址，自己通过百度云下载", 'd', func() {
+		//AddItem("[未完成]从本机分享mod信息到服务器", "该功能用于获取本地存在，但服务器没有的mod，并调用BadiduPCS.exe上传到百度云，造福其他用户", 'u', nil).
+		AddItem("<试验性>从服务器获取缺失mod的秒传信息", "尝试获取缺失mod的秒传地址，自己通过百度云下载", 'g', func() {
 			tryGetBDMD5(pages)
 		}).
-		AddItem("[未完成]用BadiduPCS直接下载缺失mod", "尝试获取服务器中缺失mod的秒传地址，并调用BadiduPCS.exe下载", 'd', nil)
+		AddItem("生成角色卡借物表", "尝通过本地MOD信息，生成自制角色的MOD借物表", 'm', func() {
+			GetCardModsInfo(pages)
+		})
+	//AddItem("[未完成]用BadiduPCS直接下载缺失mod", "尝试获取服务器中缺失mod的秒传地址，并调用BadiduPCS.exe下载", 'd', nil)
 
 	if res.Outdated {
-		list.AddItem(fmt.Sprintf("下载新版本:v%s", res.Current), "喂!三点几，饮茶先啦！(哼啊啊啊啊...)", 'a', func() {
+		list.AddItem(fmt.Sprintf("下载新版本:v%s", res.Current), "喂!三点几，饮茶先啦！(哼啊啊啊啊...)", 'd', func() {
 			if isWin() {
 				MsgWeb(pages, fmt.Sprintf("当前软件版本：%s,Github最新Release版本:%s", version, res.Current), "主页", "访问下载页", "https://github.com/GenesisAN/KKCardModCheck/releases")
 				return
@@ -476,6 +479,115 @@ func checkCardUseMod(pages *tview.Pages) {
 		true,
 		false)
 	pages.SwitchToPage("卡MOD比对")
+}
+
+// 生成卡片借物表
+func GetCardModsInfo(pages *tview.Pages) {
+	if IsNotExist("./ModsInfo.json") {
+		OKMsg(pages, "未找到ModsInfo.json\n请先生成游戏MOD数据文件", "主页")
+		return
+	}
+	cd := tview.NewInputField().
+		SetLabel("输入卡片路径,或将卡片拖入(回车确定，ESC返回): ").
+		SetFieldWidth(100)
+	cd.SetDoneFunc(func(key tcell.Key) {
+		// 按下回车的处理
+		if key == tcell.KeyEnter {
+			go func() {
+				// ModsInfo文件读取
+				data, err := os.ReadFile("./ModsInfo.json")
+				if err != nil {
+					OKMsg(pages, fmt.Sprintf("文件读取失败:%s", err.Error()), "路径输入")
+				}
+				// 反序列化Modsinfo.json的数据
+				var modsinfo []ModXml
+				json.Unmarshal(data, &modsinfo)
+
+				var sb strings.Builder
+				// 处理传入路径双引号处理
+				cardpath := strings.Replace(cd.GetText(), "\"", "", -1)
+				ext := path.Ext(cardpath) // 提取路径后缀进行比对
+				sb.WriteString(cardpath + "\n\n")
+				if ext == ".png" {
+					// 读取KK卡片数据
+					kkcard, err := card.ReadKK(cardpath)
+					if err != nil {
+						OKMsg(pages, fmt.Sprintf("%s", err.Error()), "路径输入")
+						return
+					}
+					sb.WriteString("依赖DLL:\n")
+					for i, _ := range kkcard.ExtendedList {
+						sb.WriteString(fmt.Sprintf(" - %s\n", i))
+					}
+					sb.WriteString("\n依赖ZipMod:\n")
+					cardmods := make(map[string]Base.ResolveInfo)
+					v, Ok := kkcard.ExtendedList["com.bepis.sideloader.universalautoresolver"]
+					bdmd5 := 0
+					if Ok {
+						for _, zipmod := range v.RequiredZipmodGUIDs {
+							if _, OK := cardmods[zipmod.GUID]; !OK {
+								cardmods[zipmod.GUID] = zipmod
+							}
+						}
+						for _, zipmod := range modsinfo {
+							if _, OK := cardmods[zipmod.GUID]; !OK {
+								bdmd5++
+								sb.WriteString(fmt.Sprintf("%s:\n - 名称:%s\n - 作者:%s\n - 相关web:%s\n - 秒传地址:%s\n\n", zipmod.GUID, zipmod.Name, zipmod.Author, zipmod.Website, zipmod.BDMD5))
+							} else {
+								sb.WriteString(fmt.Sprintf("%s:本地无此MOD\n", zipmod.GUID))
+							}
+						}
+						//data, err := getData(fmt.Sprintf("https://anweb.asuscomm.com:3000/api/v1/mods/search?s=%s&p=0&t=0", zipmod.GUID), map[string]string{"Accept": "application/json"})
+						//if err != nil {
+						//	//fmt.Println(err.Error())
+						//	OKMsg(pages, fmt.Sprintf("请求失败:%s", err.Error()), "主页")
+						//	app.Draw()
+						//	return
+						//}
+						//var res Response
+						//json.Unmarshal(data, &res)
+						//if res.Code == 200 {
+						//	for _, datum := range res.Data {
+						//		if datum.GUID == zipmod.GUID {
+						//			bdmd5++
+						//			sb.WriteString(fmt.Sprintf("%s:\n - 作者:%s\n - 相关web:%s\n - 秒传地址:%s\n", zipmod.GUID, datum.Author, datum.Website, datum.BDMD5))
+						//		}
+						//	}
+						//} else {
+						//	sb.WriteString(fmt.Sprintf("%s:暂未找到相关信息\n", zipmod.GUID))
+						//	continue
+						//}
+					}
+					os.WriteFile("card_use_mod.txt", []byte(sb.String()), 0777)
+					pages.AddPage("弹窗",
+						tview.NewModal().
+							SetBackgroundColor(tcell.ColorBlack).
+							SetText(fmt.Sprintf("检索完成，card_use_mod.txt文件，共从服务器匹配到（%d/%d）个mod的相关信息!", bdmd5, len(cardmods))).
+							AddButtons([]string{"返回主页", "查看卡借物表文件"}).
+							SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+								if buttonIndex == 0 {
+									pages.SwitchToPage("主页")
+								} else if buttonIndex == 1 {
+									exec.Command("cmd", "/C", "start", "card_use_mod.txt").Start()
+								}
+							}),
+						true,
+						false)
+					pages.SwitchToPage("弹窗")
+					app.Draw()
+				} else { // 输入文件后缀错误
+					OKMsg(pages, "请输入PNG文件!", "路径输入")
+				}
+			}()
+		} else if key == tcell.KeyESC { // 如果按下ESC，返回主页
+			pages.SwitchToPage("主页")
+		}
+	})
+	pages.AddPage("路径输入",
+		cd,
+		true,
+		false)
+	pages.SwitchToPage("路径输入")
 }
 
 func tryGetBDMD5(pages *tview.Pages) {
