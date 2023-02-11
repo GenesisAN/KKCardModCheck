@@ -1,18 +1,14 @@
 package main
 
 import (
-	"archive/zip"
+	"KKCardModCheck/util"
 	"crypto/tls"
-	"encoding/hex"
 	"encoding/json"
-	"encoding/xml"
-	"errors"
 	"fmt"
 	card "github.com/GenesisAN/illusionsCard"
 	"github.com/GenesisAN/illusionsCard/Base"
-	"github.com/GenesisAN/illusionsCard/Koikatsu"
+	"github.com/GenesisAN/illusionsCard/KK"
 	"github.com/gdamore/tcell/v2"
-	"github.com/qjfoidnh/BaiduPCS-Go/pcsutil/checksum"
 	"github.com/rivo/tview"
 	"github.com/tcnksm/go-latest"
 	"io"
@@ -21,35 +17,17 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
-	"runtime"
-	"strconv"
 	"strings"
-	"syscall"
 	"time"
-	"unsafe"
 )
-
-type ModXml struct {
-	GUID        string `xml:"guid"`
-	Version     string `xml:"version"`
-	Name        string `xml:"name"`
-	Author      string `xml:"author"`
-	Description string `xml:"description"`
-	Website     string `xml:"website"`
-	Game        string `xml:"game"`
-	BDMD5       string `gorm:"uniqueIndex"`
-	Path        string
-	Upload      bool
-}
 
 const version = "0.1.5"
 
 var app *tview.Application
 
 func main() {
-	if isWin() && len(os.Args) == 1 {
-		err := NoMoreDoubleClick()
+	if util.IsWin() && len(os.Args) == 1 {
+		err := util.NoMoreDoubleClick()
 		if err != nil {
 			fmt.Printf("遇到错误: %v", err)
 			time.Sleep(time.Second * 5)
@@ -57,7 +35,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	if IsNotExist("./Koikatu.exe") {
+	if util.IsNotExist("./Koikatu.exe") {
 		fmt.Printf("请将软件放入Koikatu游戏根目录后再运行（暂时不支持在KKS下运行）")
 		os.Exit(0)
 	}
@@ -94,24 +72,24 @@ func main() {
 	}
 
 	textView.SetBorder(true)
-	mods := []ModXml{}
+	mods := []util.ModXml{}
 	lostmodname := make(map[string]Base.ResolveInfo)
 	list := tview.NewList().
 		AddItem("生成游戏MOD数据文件", "生成的数据保存在本软件目录下的ModsInfo.json文件内", 'b', func() {
 			pages.SwitchToPage("MOD读取页")
 			textView.Clear()
 			go func() {
-				mods = []ModXml{}
-				fs := GetAllFiles(`./`, ".zipmod")
+				mods = []util.ModXml{}
+				fs := util.GetAllFiles(`./`, ".zipmod")
 				all = len(fs)
 
 				if all == 0 {
-					OKMsg(pages, "未检测到任何mod!", "主页")
+					util.OKMsg(pages, "未检测到任何mod!", "主页")
 					return
 				}
 
 				for i, v := range fs {
-					mod, err := ReadZip("", v, i)
+					mod, err := util.ReadZip("", v, i)
 					if err != nil {
 						log.Fatalln(err)
 					}
@@ -124,7 +102,7 @@ func main() {
 					return
 				}
 				os.WriteFile("./ModsInfo.json", byt, 0644)
-				OKMsg(pages, "游戏mod信息统计完成，已写入ModesInfo.json文件!", "主页")
+				util.OKMsg(pages, "游戏mod信息统计完成，已写入ModesInfo.json文件!", "主页")
 				app.Draw()
 			}()
 		}).
@@ -148,19 +126,19 @@ func main() {
 
 	if res.Outdated {
 		list.AddItem(fmt.Sprintf("下载新版本:v%s", res.Current), "喂!三点几，饮茶先啦！(哼啊啊啊啊...)", 'd', func() {
-			if isWin() {
-				MsgWeb(pages, fmt.Sprintf("当前软件版本：%s,Github最新Release版本:%s", version, res.Current), "主页", "访问下载页", "https://github.com/GenesisAN/KKCardModCheck/releases")
+			if util.IsWin() {
+				util.MsgWeb(pages, fmt.Sprintf("当前软件版本：%s,Github最新Release版本:%s", version, res.Current), "主页", "访问下载页", "https://github.com/GenesisAN/KKCardModCheck/releases")
 				return
 			}
-			OKMsg(pages, "Github最新Release版本下载地址:https://github.com/GenesisAN/KKCardModCheck/releases", "主页")
+			util.OKMsg(pages, "Github最新Release版本下载地址:https://github.com/GenesisAN/KKCardModCheck/releases", "主页")
 		})
 	}
 	list.AddItem("关于本软件", "本软件完全免费，具体社区信息请进入查看", 'a', func() {
-		if isWin() {
-			MsgWeb(pages, "本软件由G_AN开发，欢迎入群讨论交流，入群方式可从doc.kkgkd.com获取", "主页", "访问网页", "https://doc.kkgkd.com")
+		if util.IsWin() {
+			util.MsgWeb(pages, "本软件由G_AN开发，欢迎入群讨论交流，入群方式可从doc.kkgkd.com获取", "主页", "访问网页", "https://doc.kkgkd.com")
 			return
 		}
-		OKMsg(pages, "本软件由G_AN开发，欢迎入群讨论交流，入群方式可从doc.kkgkd.com获取", "主页")
+		util.OKMsg(pages, "本软件由G_AN开发，欢迎入群讨论交流，入群方式可从doc.kkgkd.com获取", "主页")
 	}).
 		AddItem("退出", "按下退出程序", 'q', func() {
 			app.Stop()
@@ -210,8 +188,8 @@ func RecoverClearCMD() {
 
 // 检查单个卡片缺失mod
 func checkSingCardMods(pages *tview.Pages, lostmodname map[string]Base.ResolveInfo) {
-	if IsNotExist("./ModsInfo.json") {
-		OKMsg(pages, "未找到ModsInfo.json\n请先生成游戏MOD数据文件", "主页")
+	if util.IsNotExist("./ModsInfo.json") {
+		util.OKMsg(pages, "未找到ModsInfo.json\n请先生成游戏MOD数据文件", "主页")
 		return
 	}
 	cd := tview.NewInputField().
@@ -226,10 +204,10 @@ func checkSingCardMods(pages *tview.Pages, lostmodname map[string]Base.ResolveIn
 			// ModsInfo文件读取
 			data, err := os.ReadFile("./ModsInfo.json")
 			if err != nil {
-				OKMsg(pages, fmt.Sprintf("文件读取失败:%s", err.Error()), "路径输入")
+				util.OKMsg(pages, fmt.Sprintf("文件读取失败:%s", err.Error()), "路径输入")
 			}
 			// 反序列化Modsinfo.json的数据
-			var modsinfo []ModXml
+			var modsinfo []util.ModXml
 			json.Unmarshal(data, &modsinfo)
 			// 处理传入路径双引号处理
 			cardpath := strings.Replace(cd.GetText(), "\"", "", -1)
@@ -238,12 +216,12 @@ func checkSingCardMods(pages *tview.Pages, lostmodname map[string]Base.ResolveIn
 				// 读取KK卡片数据
 				kkcard, err := card.ReadKK(cardpath)
 				if err != nil {
-					OKMsg(pages, fmt.Sprintf("%s", err.Error()), "路径输入")
+					util.OKMsg(pages, fmt.Sprintf("%s", err.Error()), "路径输入")
 					return
 				}
 				v, Ok := kkcard.ExtendedList["com.bepis.sideloader.universalautoresolver"]
 				cardmods := make(map[string]Base.ResolveInfo)
-				localmods := make(map[string]ModXml)
+				localmods := make(map[string]util.ModXml)
 				if Ok {
 					// 提取出卡片mod map
 					for _, zipmod := range v.RequiredZipmodGUIDs {
@@ -270,12 +248,12 @@ func checkSingCardMods(pages *tview.Pages, lostmodname map[string]Base.ResolveIn
 					}
 					//写入TXT文件
 					os.WriteFile("mods.txt", []byte(strings.Join(p, "\n")), 0644)
-					MsgWeb(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页", "查看缺失mod", "mods.txt")
+					util.MsgWeb(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页", "查看缺失mod", "mods.txt")
 				} else { // 缺失mod数量为0
-					OKMsg(pages, "检索完成，没有缺失的MOD!", "主页")
+					util.OKMsg(pages, "检索完成，没有缺失的MOD!", "主页")
 				}
 			} else { // 输入文件后缀错误
-				OKMsg(pages, "请输入PNG文件!", "路径输入")
+				util.OKMsg(pages, "请输入PNG文件!", "路径输入")
 			}
 		} else if key == tcell.KeyESC { // 如果按下ESC，返回主页
 			pages.SwitchToPage("主页")
@@ -291,8 +269,8 @@ func checkSingCardMods(pages *tview.Pages, lostmodname map[string]Base.ResolveIn
 
 // 检查所有卡片缺失mod
 func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname map[string]Base.ResolveInfo) {
-	if IsNotExist("./ModsInfo.json") {
-		OKMsg(pages, "未找到ModsInfo.json\n请先生成游戏MOD数据文件", "主页")
+	if util.IsNotExist("./ModsInfo.json") {
+		util.OKMsg(pages, "未找到ModsInfo.json\n请先生成游戏MOD数据文件", "主页")
 		return
 	}
 	textView.Clear()
@@ -309,11 +287,11 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 			// ModsInfo文件读取
 			data, err := os.ReadFile("./ModsInfo.json")
 			if err != nil {
-				OKMsg(pages, fmt.Sprintf("文件读取失败:%s", err.Error()), "路径输入")
+				util.OKMsg(pages, fmt.Sprintf("文件读取失败:%s", err.Error()), "路径输入")
 			}
 			// 反序列化Modsinfo.json的数据
-			var cards []*Koikatsu.KoiCard
-			var modsinfo []ModXml
+			var cards []*KK.KKCard
+			var modsinfo []util.ModXml
 			var frc [][]string
 			json.Unmarshal(data, &modsinfo)
 			ext := path.Ext(cardpath) // 提取路径后缀进行比对
@@ -321,7 +299,7 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 				pages.SwitchToPage("MOD读取页")
 				textView.Clear()
 				go func() {
-					fs := GetAllFiles(cardpath, ".png")
+					fs := util.GetAllFiles(cardpath, ".png")
 					for i, v := range fs {
 						card, err := card.ReadKK(v)
 						if err != nil {
@@ -332,7 +310,7 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 						fmt.Fprintf(textView, "[%d/%d]%s\n", i+1, len(fs), v)
 					}
 					cardmods := make(map[string]Base.ResolveInfo)
-					localmods := make(map[string]ModXml)
+					localmods := make(map[string]util.ModXml)
 					for _, kkcard := range cards {
 						v, Ok := kkcard.ExtendedList["com.bepis.sideloader.universalautoresolver"]
 						if Ok {
@@ -363,25 +341,25 @@ func checkAllCardMods(pages *tview.Pages, textView *tview.TextView, lostmodname 
 						//写入TXT文件
 						err := os.WriteFile("mods.txt", []byte(strings.Join(p, "\n")), 0777)
 						if err != nil {
-							OKMsg(pages, fmt.Sprintf("检索完成，但生成mods.txt文件失败，原因:%s!", err.Error()), "主页")
+							util.OKMsg(pages, fmt.Sprintf("检索完成，但生成mods.txt文件失败，原因:%s!", err.Error()), "主页")
 							app.Draw()
 						} else {
-							if isWin() {
-								MsgWeb(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页", "查看缺失mod", "mods.txt")
+							if util.IsWin() {
+								util.MsgWeb(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页", "查看缺失mod", "mods.txt")
 								app.Draw()
 							} else {
-								OKMsg(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页")
+								util.OKMsg(pages, fmt.Sprintf("检索完成，已生成mods.txt文件，共缺失%d个MOD!", len(lostmodname)), "主页")
 								app.Draw()
 							}
 						}
 					} else { // 缺失mod数量为0
-						OKMsg(pages, "检索完成，没有缺失的MOD!", "主页")
+						util.OKMsg(pages, "检索完成，没有缺失的MOD!", "主页")
 						app.Draw()
 					}
 				}()
 
 			} else { // 输入文件后缀错误
-				OKMsg(pages, "请输入路径!", "路径输入")
+				util.OKMsg(pages, "请输入路径!", "路径输入")
 			}
 		} else if key == tcell.KeyESC { // 如果按下ESC，返回主页
 			pages.SwitchToPage("主页")
@@ -412,22 +390,22 @@ func checkCardUseMod(pages *tview.Pages) {
 			cpext := path.Ext(cardpath) // 提取路径后缀进行比对
 			mpext := path.Ext(modpath)
 			if cpext != ".png" {
-				OKMsg(pages, "卡片路径请输入PNG文件", "卡MOD比对")
+				util.OKMsg(pages, "卡片路径请输入PNG文件", "卡MOD比对")
 				return
 			}
 			if mpext != ".zipmod" {
-				OKMsg(pages, "mod路径请输入文件zipmod文件", "卡MOD比对")
+				util.OKMsg(pages, "mod路径请输入文件zipmod文件", "卡MOD比对")
 				return
 			}
 			// 读取KK卡片数据
 			kkcard, err := card.ReadKK(cardpath)
 			if err != nil {
-				OKMsg(pages, fmt.Sprintf("%s", err.Error()), "卡MOD比对")
+				util.OKMsg(pages, fmt.Sprintf("%s", err.Error()), "卡MOD比对")
 				return
 			}
-			mod, err := ReadZip("", modpath, 0)
+			mod, err := util.ReadZip("", modpath, 0)
 			if err != nil {
-				OKMsg(pages, fmt.Sprintf("%s", err.Error()), "卡MOD比对")
+				util.OKMsg(pages, fmt.Sprintf("%s", err.Error()), "卡MOD比对")
 				app.Draw()
 				return
 			}
@@ -488,8 +466,8 @@ func checkCardUseMod(pages *tview.Pages) {
 
 // 生成卡片借物表
 func GetCardModsInfo(pages *tview.Pages) {
-	if IsNotExist("./ModsInfo.json") {
-		OKMsg(pages, "未找到ModsInfo.json\n请先生成游戏MOD数据文件", "主页")
+	if util.IsNotExist("./ModsInfo.json") {
+		util.OKMsg(pages, "未找到ModsInfo.json\n请先生成游戏MOD数据文件", "主页")
 		return
 	}
 	cd := tview.NewInputField().
@@ -501,10 +479,10 @@ func GetCardModsInfo(pages *tview.Pages) {
 			// ModsInfo文件读取
 			data, err := os.ReadFile("./ModsInfo.json")
 			if err != nil {
-				OKMsg(pages, fmt.Sprintf("文件读取失败:%s", err.Error()), "路径输入")
+				util.OKMsg(pages, fmt.Sprintf("文件读取失败:%s", err.Error()), "路径输入")
 			}
 			// 反序列化Modsinfo.json的数据
-			var modsinfo []ModXml
+			var modsinfo []util.ModXml
 			json.Unmarshal(data, &modsinfo)
 
 			var sb strings.Builder
@@ -516,7 +494,7 @@ func GetCardModsInfo(pages *tview.Pages) {
 				// 读取KK卡片数据
 				kkcard, err := card.ReadKK(cardpath)
 				if err != nil {
-					OKMsg(pages, fmt.Sprintf("%s", err.Error()), "路径输入")
+					util.OKMsg(pages, fmt.Sprintf("%s", err.Error()), "路径输入")
 					return
 				}
 				sb.WriteString("依赖DLL:\n")
@@ -525,7 +503,7 @@ func GetCardModsInfo(pages *tview.Pages) {
 				}
 				sb.WriteString("\n依赖ZipMod:\n")
 				cardmods := make(map[string]Base.ResolveInfo)
-				localmods := make(map[string]ModXml)
+				localmods := make(map[string]util.ModXml)
 				v, Ok := kkcard.ExtendedList["com.bepis.sideloader.universalautoresolver"]
 				bdmd5 := 0
 				if Ok {
@@ -551,7 +529,7 @@ func GetCardModsInfo(pages *tview.Pages) {
 					//data, err := getData(fmt.Sprintf("https://anweb.asuscomm.com:3000/api/v1/mods/search?s=%s&p=0&t=0", zipmod.GUID), map[string]string{"Accept": "application/json"})
 					//if err != nil {
 					//	//fmt.Println(err.Error())
-					//	OKMsg(pages, fmt.Sprintf("请求失败:%s", err.Error()), "主页")
+					//	util.OKMsg(pages, fmt.Sprintf("请求失败:%s", err.Error()), "主页")
 					//	app.Draw()
 					//	return
 					//}
@@ -586,7 +564,7 @@ func GetCardModsInfo(pages *tview.Pages) {
 					false)
 				pages.SwitchToPage("弹窗")
 			} else { // 输入文件后缀错误
-				OKMsg(pages, "请输入PNG文件!", "路径输入")
+				util.OKMsg(pages, "请输入PNG文件!", "路径输入")
 			}
 		} else if key == tcell.KeyESC { // 如果按下ESC，返回主页
 			pages.SwitchToPage("主页")
@@ -600,14 +578,14 @@ func GetCardModsInfo(pages *tview.Pages) {
 }
 
 func tryGetBDMD5(pages *tview.Pages) {
-	if IsNotExist("./mods.txt") {
-		OKMsg(pages, "未找到mods.txt\n请先检查卡片缺失mod，生成mods.txt信息后再尝试", "主页")
+	if util.IsNotExist("./mods.txt") {
+		util.OKMsg(pages, "未找到mods.txt\n请先检查卡片缺失mod，生成mods.txt信息后再尝试", "主页")
 		return
 	}
 	go func() {
 		data, err := os.ReadFile("./mods.txt")
 		if err != nil {
-			OKMsg(pages, fmt.Sprintf("文件读取失败:%s", err.Error()), "路径输入")
+			util.OKMsg(pages, fmt.Sprintf("文件读取失败:%s", err.Error()), "路径输入")
 			app.Draw()
 			return
 		}
@@ -617,12 +595,12 @@ func tryGetBDMD5(pages *tview.Pages) {
 		var nobdmd5 []string
 		count := len(mods)
 		for i, i2 := range mods {
-			MsgTips(pages, fmt.Sprintf("正在向服务器请求mod信息[%d/%d]", i, count))
+			util.MsgTips(pages, fmt.Sprintf("正在向服务器请求mod信息[%d/%d]", i, count))
 			app.Draw()
 			data, err := getData(fmt.Sprintf("https://anweb.asuscomm.com:3000/api/v1/mods/search?s=%s&p=0&t=0", i2), map[string]string{"Accept": "application/json"})
 			if err != nil {
 				//fmt.Println(err.Error())
-				OKMsg(pages, fmt.Sprintf("请求失败:%s", err.Error()), "主页")
+				util.OKMsg(pages, fmt.Sprintf("请求失败:%s", err.Error()), "主页")
 				app.Draw()
 				return
 			}
@@ -661,17 +639,6 @@ func tryGetBDMD5(pages *tview.Pages) {
 	}()
 }
 
-type Response struct {
-	//错误代码
-	Code int `json:"code"`
-	//数据
-	Data []ModInfo `json:"data,omitempty"`
-	//返回消息
-	Msg string `json:"msg"`
-	//错误信息
-	Error string `json:"error,omitempty"`
-}
-
 type ModInfo struct {
 	GUID        string
 	Version     string
@@ -682,6 +649,17 @@ type ModInfo struct {
 	Game        string
 	BDMD5       string `gorm:"uniqueIndex"`
 	Upload      bool
+}
+
+type Response struct {
+	//错误代码
+	Code int `json:"code"`
+	//数据
+	Data []ModInfo `json:"data,omitempty"`
+	//返回消息
+	Msg string `json:"msg"`
+	//错误信息
+	Error string `json:"error,omitempty"`
 }
 
 func getData(url string, head map[string]string) (data []byte, err error) {
@@ -712,164 +690,4 @@ func getData(url string, head map[string]string) (data []byte, err error) {
 	//	defer f.Close()
 	//	json.NewEncoder(f).Encode(v)
 	//}
-
-}
-
-func OKMsg(pages *tview.Pages, text string, page string) {
-	pages.AddPage("弹窗",
-		tview.NewModal().
-			SetBackgroundColor(tcell.ColorBlack).
-			SetText(text).
-			AddButtons([]string{"OK"}).
-			SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-				if buttonIndex == 0 {
-					pages.SwitchToPage(page)
-				}
-			}),
-		true,
-		false)
-	pages.SwitchToPage("弹窗")
-	//app.Draw()
-}
-
-func MsgWeb(pages *tview.Pages, text, page, button, url string) {
-	pages.AddPage("弹窗",
-		tview.NewModal().
-			SetBackgroundColor(tcell.ColorBlack).
-			SetText(text).
-			AddButtons([]string{"OK", button}).
-			SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-				if buttonIndex == 0 {
-					pages.SwitchToPage(page)
-				} else {
-					exec.Command("cmd", "/C", "start", url).Start()
-				}
-			}),
-		true,
-		false)
-	pages.SwitchToPage("弹窗")
-}
-
-func MsgTips(pages *tview.Pages, text string) {
-	pages.AddPage("弹窗",
-		tview.NewModal().
-			SetBackgroundColor(tcell.ColorBlack).
-			SetText(text),
-		true,
-		false)
-	pages.SwitchToPage("弹窗")
-}
-
-func ReadZip(dst, src string, i int) (ModXml, error) {
-	mod := ModXml{}
-	//===============BDMD5计算===================
-	lp, err := checksum.GetFileSum(src, checksum.CHECKSUM_MD5|checksum.CHECKSUM_SLICE_MD5|checksum.CHECKSUM_CRC32)
-	if err != nil {
-		return mod, err
-	}
-	strLength, strMd5, strSliceMd5 := strconv.FormatInt(lp.Length, 10), hex.EncodeToString(lp.MD5), hex.EncodeToString(lp.SliceMD5)
-	fileName := filepath.Base(src)
-	regFileName := strings.Replace(fileName, " ", "_", -1)
-	regFileName = strings.Replace(regFileName, "#", "_", -1)
-	bdmd5 := strMd5 + "#" + strSliceMd5 + "#" + strLength + "#" + regFileName
-	//==========================================
-
-	zr, err := zip.OpenReader(src) //打开modzip
-	if err != nil {
-		return mod, errors.New(fmt.Sprintf("打开zip失败:%s", err.Error()))
-	}
-
-	for _, v := range zr.File { //遍历里面的文件
-		if v.FileInfo().Name() == "manifest.xml" { //找到manifest.xml
-			fr, _ := v.Open()         //打开它
-			data, _ := io.ReadAll(fr) //读取里面的所有内容
-			//构造XML的结构体
-			err = xml.Unmarshal(data, &mod) //内容反序列化，按指定格式拿到里面的数据
-			if err != nil {
-				return mod, errors.New(fmt.Sprintf("读取zipmod信息失败:%s", err.Error()))
-			}
-
-			if err != nil {
-				fmt.Errorf(err.Error())
-				return mod, err
-			}
-			mod.BDMD5 = bdmd5
-			mod.Path = strings.Replace(src, "mods\\", "", -1)
-		}
-	}
-	return mod, err
-}
-func GetAllFiles(root, ext string) []string {
-	var files []string
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if filepath.Ext(path) != ext {
-			return nil
-		}
-		files = append(files, path)
-		return nil
-	})
-	if err != nil {
-		panic(err)
-	}
-	return files
-}
-
-// IsExist 文件/路径存在
-func IsExist(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil || os.IsExist(err)
-}
-
-// IsNotExist 文件/路径不存在
-func IsNotExist(path string) bool {
-	_, err := os.Stat(path)
-	return err != nil && os.IsNotExist(err)
-}
-func isWin() bool {
-	return runtime.GOOS == "windows"
-}
-
-// NoMoreDoubleClick 提示用户不要双击运行，并生成安全启动脚本
-func NoMoreDoubleClick() error {
-	r := boxW(0, "请勿通过双击直接运行本程序\n这会因CMD字符格式问题导致界面渲染出现问题\n点击确认将释出启动脚本，点击取消则关闭程序", "警告", 0x00000030|0x00000001)
-	if r == 2 {
-		return nil
-	}
-	r = boxW(0, "点击确认将覆盖start.bat，点击取消则关闭程序", "警告", 0x00000030|0x00000001)
-	if r == 2 {
-		return nil
-	}
-	f, err := os.OpenFile("start.bat", os.O_CREATE|os.O_RDWR, 0o666)
-	if err != nil {
-		return err
-	}
-	if err != nil {
-		fmt.Printf("打开start.bat失败: %v", err)
-		return err
-	}
-	_ = f.Truncate(0)
-
-	ex, _ := os.Executable()
-	exPath := filepath.Base(ex)
-	_, err = f.WriteString("%Created by KKCardModCheck. DO NOT EDIT ME!%\nchcp 65001 \n\"" + exPath + "\" -s\npause")
-	if err != nil {
-		fmt.Printf("写入启动.bat失败: %v", err)
-		return err
-	}
-	f.Close()
-	boxW(0, "启动脚本已生成，请双击start.bat启动", "提示", 0x00000040|0x00000000)
-	return nil
-}
-
-// BoxW of Win32 API. Check https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-messageboxw for more detail.
-func boxW(hwnd uintptr, caption, title string, flags uint) int {
-	captionPtr, _ := syscall.UTF16PtrFromString(caption)
-	titlePtr, _ := syscall.UTF16PtrFromString(title)
-	ret, _, _ := syscall.NewLazyDLL("user32.dll").NewProc("MessageBoxW").Call(
-		hwnd,
-		uintptr(unsafe.Pointer(captionPtr)),
-		uintptr(unsafe.Pointer(titlePtr)),
-		uintptr(flags))
-
-	return int(ret)
 }
