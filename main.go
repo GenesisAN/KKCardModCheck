@@ -5,20 +5,20 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	card "github.com/GenesisAN/illusionsCard"
-	"github.com/GenesisAN/illusionsCard/Base"
-	"github.com/GenesisAN/illusionsCard/KK"
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
-	"github.com/tcnksm/go-latest"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
 	"time"
+
+	card "github.com/GenesisAN/illusionsCard"
+	"github.com/GenesisAN/illusionsCard/Base"
+	"github.com/GenesisAN/illusionsCard/KK"
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
+	"github.com/tcnksm/go-latest"
 )
 
 const version = "0.1.5"
@@ -73,6 +73,7 @@ func main() {
 
 	textView.SetBorder(true)
 	mods := []util.ModXml{}
+	failmods := []util.ModXml{}
 	lostmodname := make(map[string]Base.ResolveInfo)
 	list := tview.NewList().
 		AddItem("生成游戏MOD数据文件", "生成的数据保存在本软件目录下的ModsInfo.json文件内", 'b', func() {
@@ -91,18 +92,23 @@ func main() {
 				for i, v := range fs {
 					mod, err := util.ReadZip("", v, i)
 					if err != nil {
-						log.Fatalln(err)
+						failmods = append(failmods, mod)
+						fmt.Fprintf(textView, "[%d/%d]Read Fail:%s\nError:%s\n", len(failmods), all, mod.Path, err.Error())
+					} else {
+						mods = append(mods, mod)
+						fmt.Fprintf(textView, "[%d/%d]%s\t%s\t%s\n", len(mods), all, mod.Name, mod.GUID, mod.Version)
 					}
-					mods = append(mods, mod)
-					fmt.Fprintf(textView, "[%d/%d]%s\t%s\t%s\n", len(mods), all, mod.Name, mod.GUID, mod.Version)
-
 				}
+
+				eyt, err := json.Marshal(failmods)
 				byt, err := json.Marshal(mods)
 				if err != nil {
 					return
 				}
 				os.WriteFile("./ModsInfo.json", byt, 0644)
-				util.OKMsg(pages, "游戏mod信息统计完成，已写入ModesInfo.json文件!", "主页")
+				os.WriteFile("./ModsInfoFail.json", eyt, 0644)
+				tips := fmt.Sprintf("检测完成，共检测到%d个MOD，成功%d个，失败%d个\n成功的数据已写入ModsInfo.json文件\n失败的数据已写入ModsInfoFail.json文件\n", all, len(mods), len(failmods))
+				util.OKMsg(pages, tips, "主页")
 				app.Draw()
 			}()
 		}).
@@ -521,7 +527,8 @@ func GetCardModsInfo(pages *tview.Pages) {
 					for _, zipmod := range cardmods {
 						if lm, OK := localmods[zipmod.GUID]; OK {
 							bdmd5++
-							sb.WriteString(fmt.Sprintf("%s:\n - 名称:%s\n - 作者:%s\n - 相关web:%s\n - 秒传地址:%s\n\n", lm.GUID, lm.Name, lm.Author, lm.Website, lm.BDMD5))
+							//	sb.WriteString(fmt.Sprintf("%s:\n - 名称:%s\n - 作者:%s\n - 相关web:%s\n - 秒传地址:%s\n\n", lm.GUID, lm.Name, lm.Author, lm.Website /*lm.BDMD5*/))
+							sb.WriteString(fmt.Sprintf("%s:\n - 名称:%s\n - 作者:%s\n - 相关web:%s\n\n\n", lm.GUID, lm.Name, lm.Author, lm.Website /*lm.BDMD5*/))
 						} else {
 							sb.WriteString(fmt.Sprintf("%s:\n - 本地无此MOD\n\n", zipmod.GUID))
 						}
