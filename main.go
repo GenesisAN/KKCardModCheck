@@ -21,7 +21,7 @@ import (
 	"github.com/tcnksm/go-latest"
 )
 
-const version = "0.1.5"
+const version = "0.1.6"
 
 var app *tview.Application
 

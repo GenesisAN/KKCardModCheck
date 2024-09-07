@@ -1,7 +1,7 @@
 # KKCardModCheck
 
 用于检测Koikastu系列游戏的角色卡的MOD 工具
-
+PS:服务器功能暂时寄了，因为百度云取消了秒传功能导致，后续看看怎么处理这个问题。目前MOD数据服务器也经历迁移，移动把我公网IP收回去了让我欲哭无泪，暂时还没重新搭建。
 ### [下载地址](https://github.com/GenesisAN/KKCardModCheck/releases)
 
 ### 软件功能：
@@ -36,6 +36,8 @@
 3.按下对应按钮启动相关功能，或者使用小键盘上下，切换功能选项，按回车确认。如果要在多个输入框切换，可以按TAB，在弹窗界面选择按钮时，可以按左右切换选项
 
 ### 报错指南:
+
+
 
 如果软件进行某项操作时出现显示报错信息，可以将信息通过创建[issues](https://github.com/GenesisAN/KKCardModCheck/issues/new)
 来提交，我会尽快查看并处理
