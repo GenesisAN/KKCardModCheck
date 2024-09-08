@@ -21,7 +21,7 @@ import (
 	"github.com/tcnksm/go-latest"
 )
 
-const version = "0.1.6"
+const version = "0.1.7"
 
 var app *tview.Application
 
@@ -222,7 +222,7 @@ func checkSingCardMods(pages *tview.Pages, lostmodname map[string]Base.ResolveIn
 				// 读取KK卡片数据
 				kkcard, err := card.ReadKK(cardpath)
 				if err != nil {
-					util.OKMsg(pages, fmt.Sprintf("%s", err.Error()), "路径输入")
+					util.OKMsg(pages, err.Error(), "路径输入")
 					return
 				}
 				v, Ok := kkcard.ExtendedList["com.bepis.sideloader.universalautoresolver"]
@@ -406,12 +406,12 @@ func checkCardUseMod(pages *tview.Pages) {
 			// 读取KK卡片数据
 			kkcard, err := card.ReadKK(cardpath)
 			if err != nil {
-				util.OKMsg(pages, fmt.Sprintf("%s", err.Error()), "卡MOD比对")
+				util.OKMsg(pages, err.Error(), "卡MOD比对")
 				return
 			}
 			mod, err := util.ReadZip("", modpath, 0)
 			if err != nil {
-				util.OKMsg(pages, fmt.Sprintf("%s", err.Error()), "卡MOD比对")
+				util.OKMsg(pages, err.Error(), "卡MOD比对")
 				app.Draw()
 				return
 			}
@@ -500,7 +500,7 @@ func GetCardModsInfo(pages *tview.Pages) {
 				// 读取KK卡片数据
 				kkcard, err := card.ReadKK(cardpath)
 				if err != nil {
-					util.OKMsg(pages, fmt.Sprintf("%s", err.Error()), "路径输入")
+					util.OKMsg(pages, err.Error(), "路径输入")
 					return
 				}
 				sb.WriteString("依赖DLL:\n")
