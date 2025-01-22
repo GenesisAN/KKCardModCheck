@@ -25,6 +25,8 @@ const version = "0.1.7"
 
 var app *tview.Application
 
+var gamePath = "./"
+
 func main() {
 	if util.IsWin() && len(os.Args) == 1 {
 		err := util.NoMoreDoubleClick()
@@ -34,10 +36,15 @@ func main() {
 		}
 		os.Exit(0)
 	}
-
-	if util.IsNotExist("./Koikatu.exe") {
-		fmt.Printf("请将软件放入Koikatu游戏根目录后再运行（暂时不支持在KKS下运行）")
-		os.Exit(0)
+	// 检查是否在Koikatu根目录下运行
+	if len(os.Args) > 1 && os.Args[1] != "-p" {
+		if util.IsNotExist("./Koikatu.exe") {
+			fmt.Printf("请将软件放入Koikatu游戏根目录后再运行（暂时不支持在KKS下运行）")
+			os.Exit(0)
+		}
+	}
+	if len(os.Args) > 1 && os.Args[1] == "-p" {
+		gamePath = os.Args[2]
 	}
 
 	// 主线程发生恐慌时清空控制台，让控制台能更好的显示报错信息，只对主线程生效
@@ -51,7 +58,7 @@ func main() {
 		SetChangedFunc(func() {
 			app.Draw()
 		})
-	var all int
+	var 所有统计 int
 	// 更新检测
 
 	githubTag := &latest.GithubTag{
@@ -81,10 +88,10 @@ func main() {
 			textView.Clear()
 			go func() {
 				mods = []util.ModXml{}
-				fs := util.GetAllFiles(`./`, ".zipmod")
-				all = len(fs)
+				fs := util.GetAllFiles(gamePath, ".zipmod")
+				所有统计 = len(fs)
 
-				if all == 0 {
+				if 所有统计 == 0 {
 					util.OKMsg(pages, "未检测到任何mod!", "主页")
 					return
 				}
@@ -93,10 +100,10 @@ func main() {
 					mod, err := util.ReadZip("", v, i)
 					if err != nil {
 						failmods = append(failmods, mod)
-						fmt.Fprintf(textView, "[%d/%d]Read Fail:%s\nError:%s\n", len(failmods), all, mod.Path, err.Error())
+						fmt.Fprintf(textView, "[%d/%d]Read Fail:%s\nError:%s\n", len(failmods), 所有统计, mod.Path, err.Error())
 					} else {
 						mods = append(mods, mod)
-						fmt.Fprintf(textView, "[%d/%d]%s\t%s\t%s\n", len(mods), all, mod.Name, mod.GUID, mod.Version)
+						fmt.Fprintf(textView, "[%d/%d]%s\t%s\t%s\n", len(mods), 所有统计, mod.Name, mod.GUID, mod.Version)
 					}
 				}
 
@@ -107,7 +114,7 @@ func main() {
 				}
 				os.WriteFile("./ModsInfo.json", byt, 0644)
 				os.WriteFile("./ModsInfoFail.json", eyt, 0644)
-				tips := fmt.Sprintf("检测完成，共检测到%d个MOD，成功%d个，失败%d个\n成功的数据已写入ModsInfo.json文件\n失败的数据已写入ModsInfoFail.json文件\n", all, len(mods), len(failmods))
+				tips := fmt.Sprintf("检测完成，共检测到%d个MOD，成功%d个，失败%d个\n成功的数据已写入ModsInfo.json文件\n失败的数据已写入ModsInfoFail.json文件\n", 所有统计, len(mods), len(failmods))
 				util.OKMsg(pages, tips, "主页")
 				app.Draw()
 			}()

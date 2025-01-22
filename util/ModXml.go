@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"os"
 	"unicode/utf16"
 )
 
@@ -20,11 +21,22 @@ type ModXml struct {
 	Upload      bool
 }
 
+// ReadZip 打开ZIP找到 manifest.xml 并尝试解析 ModXml
 func ReadZip(dst, src string, i int) (ModXml, error) {
 	mod := ModXml{Path: src}
 
+	//检查文件大小,如果文件大小为0,则返回错误
+	if fi, err := os.Stat(src); err != nil {
+		mod.Name = fmt.Sprintf("获取文件信息失败:%s", err)
+		return mod, fmt.Errorf("获取文件信息失败:%s", err)
+	} else if fi.Size() == 0 {
+		mod.Name = "文件大小为0"
+		return mod, fmt.Errorf("文件大小为0")
+	}
 	zr, err := zip.OpenReader(src)
+
 	if err != nil {
+		mod.Name = fmt.Sprintf("打开zip失败:%s", err)
 		return mod, fmt.Errorf("打开zip失败:%s", err)
 	}
 	defer zr.Close()
@@ -33,24 +45,29 @@ func ReadZip(dst, src string, i int) (ModXml, error) {
 		if v.FileInfo().Name() == "manifest.xml" {
 			fr, err := v.Open()
 			if err != nil {
+				mod.Name = fmt.Sprintf("打开manifest.xml失败:%s", err)
 				return mod, fmt.Errorf("打开manifest.xml失败:%s", err)
 			}
 			defer fr.Close()
 
 			data, err := io.ReadAll(fr)
 			if err != nil {
+				mod.Name = fmt.Sprintf("读取manifest.xml失败:%s", err)
 				return mod, fmt.Errorf("读取manifest.xml失败:%s", err)
 			}
 
-			// 首次尝试解码 XML
-			if err = xml.Unmarshal(data, &mod); err != nil {
-				if isLikelyUTF16(data) { // 如果失败了，尝试将utf-16 转换为 UTF-8 后再解码
-					utf8Data := utf16ToUtf8(data)
-					if err = xml.Unmarshal(utf8Data, &mod); err != nil {
-						return mod, fmt.Errorf("UTF-16 转换后读取失败:%s", err)
-					}
-				} else {
-					return mod, fmt.Errorf("读取zipmod信息失败:%s", err)
+			// 如果可能是 UTF-16，则先转为 UTF-8
+			if isLikelyUTF16(data) {
+				data = utf16ToUtf8(data)
+			}
+
+			// 第一次解析
+			if err := xml.Unmarshal(data, &mod); err != nil {
+				// 如果失败了，尝试“移除多余闭合标签”再解析
+				fixed := removeUnmatchedClosingTags(string(data))
+				if err2 := xml.Unmarshal([]byte(fixed), &mod); err2 != nil {
+					mod.Name = fmt.Sprintf("解析manifest.xml失败: %v; 修补后仍失败: %v", err, err2)
+					return mod, fmt.Errorf("解析manifest.xml失败: %v; 修补后仍失败: %v", err, err2)
 				}
 			}
 			break // 找到manifest.xml后停止查找
