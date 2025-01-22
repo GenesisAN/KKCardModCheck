@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"unicode/utf16"
 )
 
@@ -17,6 +18,8 @@ type ModXml struct {
 	Description string `xml:"description"`
 	Website     string `xml:"website"`
 	Game        string `xml:"game"`
+	MD5         string `xml:"md5"`
+	FileName    string `xml:"filename"`
 	Path        string
 	Upload      bool
 }
@@ -24,7 +27,11 @@ type ModXml struct {
 // ReadZip 打开ZIP找到 manifest.xml 并尝试解析 ModXml
 func ReadZip(dst, src string, i int) (ModXml, error) {
 	mod := ModXml{Path: src}
-
+	//src中提取文件名
+	mod.FileName = filepath.Base(src)
+	if os.Args[1] == "-p" {
+		mod.Upload = true
+	}
 	//检查文件大小,如果文件大小为0,则返回错误
 	if fi, err := os.Stat(src); err != nil {
 		mod.Name = fmt.Sprintf("获取文件信息失败:%s", err)

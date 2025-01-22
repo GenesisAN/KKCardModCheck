@@ -102,6 +102,14 @@ func main() {
 						failmods = append(failmods, mod)
 						fmt.Fprintf(textView, "[%d/%d]Read Fail:%s\nError:%s\n", len(failmods), 所有统计, mod.Path, err.Error())
 					} else {
+						//计算md5
+						if os.Args[1] == "-p" {
+							hash, err := util.GetFileHash64(v)
+							if err != nil {
+								panic(err)
+							}
+							mod.MD5 = fmt.Sprintf("%x", hash)
+						}
 						mods = append(mods, mod)
 						fmt.Fprintf(textView, "[%d/%d]%s\t%s\t%s\n", len(mods), 所有统计, mod.Name, mod.GUID, mod.Version)
 					}
@@ -611,7 +619,7 @@ func tryGetBDMD5(pages *tview.Pages) {
 		for i, i2 := range mods {
 			util.MsgTips(pages, fmt.Sprintf("正在向服务器请求mod信息[%d/%d]", i, count))
 			app.Draw()
-			data, err := getData(fmt.Sprintf("https://anweb.asuscomm.com:3000/api/v1/mods/search?s=%s&p=0&t=0", i2), map[string]string{"Accept": "application/json"})
+			data, err := getData(fmt.Sprintf("https://zjpfj.asuscomm.com:4040/api/v1/mods/search?s=%s&p=0&t=0", i2), map[string]string{"Accept": "application/json"})
 			if err != nil {
 				//fmt.Println(err.Error())
 				util.OKMsg(pages, fmt.Sprintf("请求失败:%s", err.Error()), "主页")

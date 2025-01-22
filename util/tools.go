@@ -1,9 +1,12 @@
 package util
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/dgryski/go-farm"
 )
 
 // GetAllFiles 遍历目录获取指定后缀文件
@@ -20,6 +23,58 @@ func GetAllFiles(root, ext string) []string {
 		panic(err)
 	}
 	return files
+}
+
+// GetFileHash 使用 farmhash 的 Hash32 计算文件哈希
+func GetFileHash32(filePath string) (uint32, error) {
+	// 打开文件
+	file, err := os.Open(filePath)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+
+	// 读取文件内容并计算哈希
+	buf := make([]byte, 4096) // 每次读取 4KB
+	h := uint32(0)
+	for {
+		n, err := file.Read(buf)
+		if err != nil && err != io.EOF {
+			return 0, err
+		}
+		if n == 0 {
+			break
+		}
+		h = farm.Hash32(buf[:n])
+	}
+
+	return h, nil
+}
+
+// GetFileHash64 使用 farmhash 的 Hash64 计算文件哈希
+func GetFileHash64(filePath string) (uint64, error) {
+	// 打开文件
+	file, err := os.Open(filePath)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+
+	// 读取文件内容并计算哈希
+	buf := make([]byte, 4096) // 每次读取 4KB
+	h := uint64(0)
+	for {
+		n, err := file.Read(buf)
+		if err != nil && err != io.EOF {
+			return 0, err
+		}
+		if n == 0 {
+			break
+		}
+		h = farm.Hash64(buf[:n])
+	}
+
+	return h, nil
 }
 
 // IsExist 文件/路径存在
