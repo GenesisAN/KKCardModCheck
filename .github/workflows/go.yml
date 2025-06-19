@@ -24,7 +24,7 @@ jobs:
     - name: Build
       run: GOOS=windows GOARCH=amd64 go build -ldflags "-s -w" -o KKCardModCheck_win_amd64.exe -trimpath
     - name: UploadFile
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: KKCardModCheck_win_amd64.exe
         path: ./KKCardModCheck_win_amd64.exe
