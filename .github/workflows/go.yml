@@ -28,3 +28,4 @@ jobs:
       with:
         name: KKCardModCheck_win_amd64.exe
         path: ./KKCardModCheck_win_amd64.exe
+        overwrite: true
