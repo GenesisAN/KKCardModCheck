@@ -20,7 +20,7 @@ import (
 	"github.com/tcnksm/go-latest"
 )
 
-const version = "0.1.7"
+const version = "0.1.8"
 
 var app *tview.Application
 
@@ -155,10 +155,10 @@ func main() {
 	}
 	list.AddItem("关于本软件", "本软件完全免费，具体社区信息请进入查看", 'a', func() {
 		if util.IsWin() {
-			util.MsgWeb(pages, "本软件由G_AN开发，欢迎入群讨论交流，入群方式可从doc.kkgkd.com获取", "主页", "访问网页", "https://doc.kkgkd.com")
+			util.MsgWeb(pages, "本软件由G_AN开发，欢迎入群讨论交流", "主页", "入群", "https://qm.qq.com/q/uzGnetojdY")
 			return
 		}
-		util.OKMsg(pages, "本软件由G_AN开发，欢迎入群讨论交流，入群方式可从doc.kkgkd.com获取", "主页")
+		util.OKMsg(pages, "本软件由G_AN开发，欢迎入群讨论交流:625083414", "主页")
 	}).
 		AddItem("退出", "按下退出程序", 'q', func() {
 			app.Stop()
