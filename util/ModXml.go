@@ -2,6 +2,7 @@ package util
 
 import (
 	"archive/zip"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -81,6 +82,35 @@ func ReadZip(dst, src string, i int) (ModXml, error) {
 		}
 	}
 	return mod, nil
+}
+
+type ModXmlSlice []ModXml
+
+func LoadModGUIDsFromJSON(path string) ([]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var mods []ModXml
+	if err := json.Unmarshal(data, &mods); err != nil {
+		return nil, err
+	}
+	return ModXmlSlice(mods).ExtractUniqueGUIDs(), nil
+}
+
+func (mods ModXmlSlice) ExtractUniqueGUIDs() []string {
+	guidSet := make(map[string]struct{}, len(mods))
+	for _, m := range mods {
+		if m.GUID != "" {
+			guidSet[m.GUID] = struct{}{}
+		}
+	}
+
+	result := make([]string, 0, len(guidSet))
+	for guid := range guidSet {
+		result = append(result, guid)
+	}
+	return result
 }
 
 // 判断是否为UTF-16
