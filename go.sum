@@ -1,5 +1,7 @@
 github.com/GenesisAN/illusionsCard v1.0.1-0.20250619163302-c7fcb7bca4c6 h1:p8UmAhkPbwxsiclbA6iHYiu5V9HdjWR8wri0GvVqaHs=
 github.com/GenesisAN/illusionsCard v1.0.1-0.20250619163302-c7fcb7bca4c6/go.mod h1:dOnSvSGQjurKzmVGjkdU1zkmWw3TIs4bLRPFQwdiJVM=
+github.com/GenesisAN/illusionsCard v1.0.1-0.20250627093350-b5142239c641 h1:bKB7OOZxTNHSZwh2ghsEOFXyGBKOA8wO+zVsMb1jNQo=
+github.com/GenesisAN/illusionsCard v1.0.1-0.20250627093350-b5142239c641/go.mod h1:dOnSvSGQjurKzmVGjkdU1zkmWw3TIs4bLRPFQwdiJVM=
 github.com/dgryski/go-farm v0.0.0-20240924180020-3414d57e47da h1:aIftn67I1fkbMa512G+w+Pxci9hJPB8oMnkcP3iZF38=
 github.com/dgryski/go-farm v0.0.0-20240924180020-3414d57e47da/go.mod h1:SqUrOPUnsFjfmXRMNPybcSiG0BgUW2AuFH8PAnS2iTw=
 github.com/gdamore/encoding v1.0.0 h1:+7OoQ1Bc6eTm5niUzBa0Ctsh6JbMW6Ra+YNuAtDBdko=

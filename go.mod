@@ -3,7 +3,7 @@ module KKCardModCheck
 go 1.19
 
 require (
-	github.com/GenesisAN/illusionsCard v1.0.1-0.20250619163302-c7fcb7bca4c6
+	github.com/GenesisAN/illusionsCard v1.0.1-0.20250627093350-b5142239c641
 	github.com/gdamore/tcell/v2 v2.5.3
 	github.com/rivo/tview v0.0.0-20230104153304-892d1a2eb0da
 	github.com/tcnksm/go-latest v0.0.0-20170313132115-e3007ae9052e
