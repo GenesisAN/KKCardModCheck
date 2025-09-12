@@ -37,7 +37,7 @@ func main() {
 	}
 	// 检查是否在Koikatu根目录下运行
 	if len(os.Args) > 1 && os.Args[1] != "-p" {
-		if util.IsNotExist("./Koikatu.exe") {
+		if util.IsNotExist("./Koikatu_Data") {
 			fmt.Printf("请将软件放入Koikatu游戏根目录后再运行（暂时不支持在KKS下运行）")
 			os.Exit(0)
 		}
