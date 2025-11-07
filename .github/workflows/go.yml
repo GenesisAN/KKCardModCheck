@@ -79,6 +79,8 @@ jobs:
         with:
           configuration: .github/release-changelog-builder-config.json
           toTag: ${{ github.ref_name }}
+          commitMode: true
+          fetchViaCommits: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Write Release Body
