@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # 拉取完整的 Git 历史记录
-          tags: true     # 确保拉取所有标签
+          fetch-tags: true # 确保拉取所有标签（正确字段）
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -37,6 +37,7 @@ jobs:
           $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
           $gitHash=$(git rev-parse --short HEAD)
           $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
+          echo "Building ldflags: $ldflags"
           go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -48,11 +49,13 @@ jobs:
     runs-on: windows-latest
     # 仅在 v*.*.* tag push 时运行
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write # 需要写权限来创建 Release
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # 拉取完整的 Git 历史记录
-          tags: true     # 确保拉取所有标签
+          fetch-tags: true # 确保拉取所有标签（正确字段）
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -68,6 +71,7 @@ jobs:
           $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
           $gitHash=$(git rev-parse --short HEAD)
           $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
+          echo "Building ldflags: $ldflags"
           go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
       - name: Create ZIP Archive
         run: |
@@ -77,8 +81,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             ./KKCardModCheck_*.zip
             ./commit_log.txt
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
