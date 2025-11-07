@@ -22,12 +22,12 @@ jobs:
       - name: Print Version Information
         run: |
           function Get-GitInfo {
-              $info = [ordered]@{ Version = 'dev'; GitHash = 'unknown' }
+              $info = [ordered]@{ Version = 'v1.0.0'; GitHash = 'unknown' }
               if (Get-Command git -ErrorAction SilentlyContinue) {
                   try {
                       $gitHash = git rev-parse --short HEAD 2>$null
                       if ($gitHash) { $info.GitHash = $gitHash.Trim() }
-                      $descr = git describe --tags --always 2>$null
+                      $descr = git describe --tags --match "v[0-9]*" --always 2>$null
                       if ($descr) { $info.Version = $descr.Trim() }
                   } catch {
                       # keep defaults
@@ -58,12 +58,12 @@ jobs:
       - name: Build Windows Executable
         run: |
           function Get-GitInfo {
-              $info = [ordered]@{ Version = 'dev'; GitHash = 'unknown' }
+              $info = [ordered]@{ Version = 'v1.0.0'; GitHash = 'unknown' }
               if (Get-Command git -ErrorAction SilentlyContinue) {
                   try {
                       $gitHash = git rev-parse --short HEAD 2>$null
                       if ($gitHash) { $info.GitHash = $gitHash.Trim() }
-                      $descr = git describe --tags --always 2>$null
+                      $descr = git describe --tags --match "v[0-9]*" --always 2>$null
                       if ($descr) { $info.Version = $descr.Trim() }
                   } catch {
                       # keep defaults
@@ -100,12 +100,12 @@ jobs:
       - name: Build Windows Executable
         run: |
           function Get-GitInfo {
-              $info = [ordered]@{ Version = 'dev'; GitHash = 'unknown' }
+              $info = [ordered]@{ Version = 'v0.0.0'; GitHash = 'unknown' }
               if (Get-Command git -ErrorAction SilentlyContinue) {
                   try {
                       $gitHash = git rev-parse --short HEAD 2>$null
                       if ($gitHash) { $info.GitHash = $gitHash.Trim() }
-                      $descr = git describe --tags --always 2>$null
+                      $descr = git describe --tags --match "v[0-9]*" --always 2>$null
                       if ($descr) { $info.Version = $descr.Trim() }
                   } catch {
                       # keep defaults
