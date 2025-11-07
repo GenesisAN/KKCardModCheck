@@ -19,16 +19,16 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.25.3
-      - name: Install mingw-w64
-        run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64 g++-mingw-w64
+      - name: Install Zig
+        run: sudo apt-get update && sudo apt-get install -y zig
       - name: Install dependencies
         run: |
           go version
           go mod tidy
-      - name: Build Windows Executable
+      - name: Build Windows Executable with Zig
         run: |
-          GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" \
-          go build -ldflags "-s -w" -o KKCardModCheck.exe -trimpath
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC="zig cc -target x86_64-windows" CXX="zig c++ -target x86_64-windows" \
+          go build -o KKCardModCheck.exe -trimpath
       - name: Create Release Archive
         run: |
           zip KKCardModCheck.zip KKCardModCheck.exe
