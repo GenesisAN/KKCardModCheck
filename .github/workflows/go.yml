@@ -56,7 +56,7 @@ jobs:
         name: Build Changelog File
         uses: mikepenz/release-changelog-builder-action@v5
         with:
-          configuration: .github/release-changelog-builder-config.json
+          configuration: release-changelog-builder-config.json
           toTag: ${{ github.ref_name }}
           mode: COMMIT
         env:
