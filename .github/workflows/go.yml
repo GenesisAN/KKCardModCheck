@@ -6,9 +6,9 @@ name: Go Build and Release
 on:
   push:
     branches:
-      - "main"
+      - "main" # 仅在 main 分支更新时触发
     tags:
-      - "v*.*.*"
+      - "v*.*.*" # 仅在符合 v*.*.* 模式的标签推送时触发
 
 jobs:
   build:
@@ -49,8 +49,8 @@ jobs:
 
   release:
     runs-on: windows-latest
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build # 确保 release 作业依赖 build 作业
+    if: startsWith(github.ref, 'refs/tags/v') # 仅在标签推送时触发
     steps:
       - name: Download Build Artifact
         uses: actions/download-artifact@v3
