@@ -15,6 +15,9 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # 拉取完整的 Git 历史记录
+          tags: true     # 确保拉取所有标签
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
