@@ -19,30 +19,6 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.25.3
-      - name: Print Version Information
-        run: |
-          function Get-GitInfo {
-              $info = [ordered]@{ Version = 'v1.0.0'; GitHash = 'unknown' }
-              if (Get-Command git -ErrorAction SilentlyContinue) {
-                  try {
-                      $gitHash = git rev-parse --short HEAD 2>$null
-                      if ($gitHash) { $info.GitHash = $gitHash.Trim() }
-                      $descr = git describe --tags --match "v[0-9]*" --always 2>$null
-                      if ($descr) { $info.Version = $descr.Trim() }
-                  } catch {
-                      # keep defaults
-                  }
-              }
-              return $info
-          }
-
-          $git = Get-GitInfo
-          $version = $git.Version
-          $buildDate = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
-          $gitHash = $git.GitHash
-          echo "Version: $version"
-          echo "Build Date: $buildDate"
-          echo "Git Hash: $gitHash"
       - name: Cache Go modules
         uses: actions/cache@v4
         with:
@@ -55,29 +31,13 @@ jobs:
           go version
           go mod tidy
 
-      - name: Build Windows Executable
+      - name: Run build.ps1 to Emit Metadata
         run: |
-          function Get-GitInfo {
-              $info = [ordered]@{ Version = 'v1.0.0'; GitHash = 'unknown' }
-              if (Get-Command git -ErrorAction SilentlyContinue) {
-                  try {
-                      $gitHash = git rev-parse --short HEAD 2>$null
-                      if ($gitHash) { $info.GitHash = $gitHash.Trim() }
-                      $descr = git describe --tags --match "v[0-9]*" --always 2>$null
-                      if ($descr) { $info.Version = $descr.Trim() }
-                  } catch {
-                      # keep defaults
-                  }
-              }
-              return $info
-          }
+          .\build.ps1 -EmitMetadata
+      - name: Run build.ps1 to Build Executable
+        run: |
+          .\build.ps1 -Build
 
-          $git = Get-GitInfo
-          $version = $git.Version
-          $buildDate = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
-          $gitHash = $git.GitHash
-          $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
-          go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
       - name: Create Release Archive
         run: |
           Compress-Archive -Path KKCardModCheck.exe -DestinationPath KKCardModCheck.zip
