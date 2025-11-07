@@ -32,7 +32,7 @@ jobs:
           go mod tidy
       - name: Print Version Information
         run: |
-          $version=$(git describe --tags --always --dirty)
+          $version=$(git describe --tags --abbrev=0)
           $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
           $gitHash=$(git rev-parse HEAD)
           echo "Version: $version"
