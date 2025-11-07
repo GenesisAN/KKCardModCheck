@@ -64,6 +64,15 @@ jobs:
         run: |
           go version
           go mod tidy
+      - name: Build Changelog File
+        uses: mikepenz/release-changelog-builder-action@v5
+        with:
+          configuration: .github/release-changelog-builder-config.json
+          toTag: ${{ github.ref_name }}
+          mode: COMMIT
+          outputFile: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build Windows Executable
         run: |
           git log -1 > commit_log.txt
@@ -73,25 +82,11 @@ jobs:
           $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
           echo "Building ldflags: $ldflags"
           go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
-      - name: Build Changelog
-        id: changelog
-        uses: mikepenz/release-changelog-builder-action@v5
-        with:
-          configuration: .github/release-changelog-builder-config.json
-          # 这里用当前 tag，比写死 v1.0.0 更通用
-          toTag: ${{ github.ref_name }}
-          # 新版推荐写法：用 mode 而不是 commitMode
-          mode: COMMIT
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Write Release Body
-        run: |
-          Set-Content -Path commit_log.md -Value "${{ steps.build_changelog.outputs.changelog }}"
       - name: Print Release Body
         run: |
-          Write-Host "==== commit_log.md ===="
-          Get-Content -Raw commit_log.md
-          Write-Host "==== END commit_log.md ===="
+          Write-Host "==== CHANGELOG.md ===="
+          Get-Content -Raw CHANGELOG.md
+          Write-Host "==== END CHANGELOG.md ===="
       - name: Create ZIP Archive
         run: |
           $tag = $env:GITHUB_REF -replace 'refs/tags/', ''
@@ -101,7 +96,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          body: ${{ steps.changelog.outputs.changelog }}
+          body: CHANGELOG.md
           files: |
             ./KKCardModCheck_*.zip
-            ./commit_log.md
+            ./CHANGELOG.md
