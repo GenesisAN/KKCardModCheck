@@ -74,23 +74,24 @@ jobs:
           echo "Building ldflags: $ldflags"
           go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
       - name: Build Changelog
-        id: build_changelog
+        id: changelog
         uses: mikepenz/release-changelog-builder-action@v5
         with:
           configuration: .github/release-changelog-builder-config.json
+          # 这里用当前 tag，比写死 v1.0.0 更通用
           toTag: ${{ github.ref_name }}
-          commitMode: true
-          fetchViaCommits: true
+          # 新版推荐写法：用 mode 而不是 commitMode
+          mode: COMMIT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Write Release Body
         run: |
-          Set-Content -Path RELEASE_BODY.md -Value "${{ steps.build_changelog.outputs.changelog }}"
+          Set-Content -Path commit_log.md -Value "${{ steps.build_changelog.outputs.changelog }}"
       - name: Print Release Body
         run: |
-          Write-Host "==== RELEASE_BODY.md ===="
-          Get-Content -Raw RELEASE_BODY.md
-          Write-Host "==== END RELEASE_BODY.md ===="
+          Write-Host "==== commit_log.md ===="
+          Get-Content -Raw commit_log.md
+          Write-Host "==== END commit_log.md ===="
       - name: Create ZIP Archive
         run: |
           $tag = $env:GITHUB_REF -replace 'refs/tags/', ''
@@ -100,7 +101,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          body_path: RELEASE_BODY.md
+          body: ${{ steps.changelog.outputs.changelog }}
           files: |
             ./KKCardModCheck_*.zip
-            ./commit_log.txt
+            ./commit_log.md
