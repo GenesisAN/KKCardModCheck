@@ -33,11 +33,11 @@ jobs:
       - name: Build Windows Executable
         run: |
           git log -1 > commit_log.txt
-          $version=$(git describe --tags --match "v[0-9]*" --always)
-          $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
-          $gitHash=$(git rev-parse --short HEAD)
-          $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
-          echo "Building ldflags: $ldflags"
+          $version = $(git describe --tags --match "v[0-9]*" --always)
+          $buildDate = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+          $gitHash = $(git rev-parse --short HEAD)
+          $ldflags = "-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
+          Write-Host "Building ldflags: $ldflags"
           go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -52,7 +52,8 @@ jobs:
     permissions:
       contents: write # 需要写权限来创建 Release
     steps:
-      - name: Build Changelog File
+      - id: build_changelog
+        name: Build Changelog File
         uses: mikepenz/release-changelog-builder-action@v5
         with:
           configuration: .github/release-changelog-builder-config.json
@@ -60,10 +61,19 @@ jobs:
           mode: COMMIT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Echo Configuration without Checkout Changelog
+
+      # 把 action 的输出写入到 CHANGELOG.md 文件并打印（在 Windows runner 上使用 PowerShell）
+      - name: Save and Show Changelog (PowerShell)
         env:
-          CHANGELOG: ${{ steps.without_checkout.outputs.changelog }}
-        run: echo "CHANGELOG"
+          CHANGELOG: ${{ steps.build_changelog.outputs.changelog }}
+        run: |
+          # 将输出写入文件以便 later steps 可以上传
+          Set-Content -Path CHANGELOG.md -Value $env:CHANGELOG -NoNewline
+          Write-Host "CHANGELOG saved to CHANGELOG.md"
+          Write-Host "---- BEGIN CHANGELOG ----"
+          Write-Host $env:CHANGELOG
+          Write-Host "----  END CHANGELOG  ----"
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # 拉取完整的 Git 历史记录
@@ -79,11 +89,11 @@ jobs:
       - name: Build Windows Executable
         run: |
           git log -1 > commit_log.txt
-          $version=$(git describe --tags --match "v[0-9]*" --always)
-          $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
-          $gitHash=$(git rev-parse --short HEAD)
-          $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
-          echo "Building ldflags: $ldflags"
+          $version = $(git describe --tags --match "v[0-9]*" --always)
+          $buildDate = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+          $gitHash = $(git rev-parse --short HEAD)
+          $ldflags = "-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
+          Write-Host "Building ldflags: $ldflags"
           go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
       - name: Create ZIP Archive
         run: |
@@ -94,9 +104,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          body: ${{ steps.without_checkout.outputs.changelog }}
+          body: ${{ steps.build_changelog.outputs.changelog }}
           prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-b') || contains(github.ref, '-a') }}
           files: |
             ./KKCardModCheck_*.zip
             ./CHANGELOG.md
-          
