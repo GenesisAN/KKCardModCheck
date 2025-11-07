@@ -73,6 +73,11 @@ jobs:
           outputFile: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Print Release Body
+        run: |
+          Write-Host "==== CHANGELOG.md ===="
+          Get-Content -Raw CHANGELOG.md
+          Write-Host "==== END CHANGELOG.md ===="
       - name: Build Windows Executable
         run: |
           git log -1 > commit_log.txt
@@ -82,11 +87,6 @@ jobs:
           $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
           echo "Building ldflags: $ldflags"
           go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
-      - name: Print Release Body
-        run: |
-          Write-Host "==== CHANGELOG.md ===="
-          Get-Content -Raw CHANGELOG.md
-          Write-Host "==== END CHANGELOG.md ===="
       - name: Create ZIP Archive
         run: |
           $tag = $env:GITHUB_REF -replace 'refs/tags/', ''
