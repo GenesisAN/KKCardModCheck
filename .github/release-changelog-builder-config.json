@@ -1,0 +1,13 @@
+{
+  "categories": [
+    { "title": "🚀 Features",   "labels": ["feature", "enhancement", "feat"] },
+    { "title": "➕ Add",        "labels": ["add", "added"] },
+    { "title": "🔄 Change",     "labels": ["change", "changed", "update", "updated"] },
+    { "title": "➖ Remove",     "labels": ["remove", "removed", "delete", "deleted"] },
+    { "title": "🐛 Fixes",      "labels": ["fix", "bug", "bugfix"] },
+    { "title": "🧰 Maintenance", "labels": ["chore", "ci", "build", "deps"] },
+    { "title": "📝 Docs",       "labels": ["docs"] },
+    { "title": "♻️ Refactor",   "labels": ["refactor"] }
+  ],
+  "ignore_labels": ["release", "skip-changelog"]
+}
