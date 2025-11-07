@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/dgryski/go-farm"
 )
@@ -90,4 +91,21 @@ func IsNotExist(path string) bool {
 }
 func IsWin() bool {
 	return runtime.GOOS == "windows"
+}
+func RemoveNewlines(s string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(s, "\n", ""), "\r", "")
+}
+
+// DedupeStrings 对字符串切片去重，保留首次出现的顺序
+func DedupeStrings(items []string) []string {
+	seen := make(map[string]struct{}, len(items))
+	out := make([]string, 0, len(items))
+	for _, s := range items {
+		if _, ok := seen[s]; ok {
+			continue
+		}
+		seen[s] = struct{}{}
+		out = append(out, s)
+	}
+	return out
 }

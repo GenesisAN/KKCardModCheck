@@ -1,0 +1,3 @@
+# Ignore Delve temporary debug binaries
+__debug_bin*.exe
+build/

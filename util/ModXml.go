@@ -30,9 +30,9 @@ func ReadZip(dst, src string, i int) (ModXml, error) {
 	mod := ModXml{Path: src}
 	//src中提取文件名
 	mod.FileName = filepath.Base(src)
-	if os.Args[1] == "-p" {
-		mod.Upload = true
-	}
+	// if os.Args[1] == "-p" {
+	// 	mod.Upload = true
+	// }
 	//检查文件大小,如果文件大小为0,则返回错误
 	if fi, err := os.Stat(src); err != nil {
 		mod.Name = fmt.Sprintf("获取文件信息失败:%s", err)

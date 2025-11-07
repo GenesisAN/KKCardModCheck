@@ -5,6 +5,7 @@ import (
 )
 
 // 提取卡片缺失mod
+// illusionsCard_tools.go
 func CollectMissingMods(cards []icb.CardInterface, localGUIDs []string) map[string]icb.ResolveInfo {
 	missing := make(map[string]icb.ResolveInfo)
 	for _, card := range cards {
