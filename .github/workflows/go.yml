@@ -28,7 +28,7 @@ jobs:
             ${{ runner.os }}-go-
       - name: Print Version Information
         run: |
-          $version=$(git describe --tags --match "v[0-9]*" --abbrev=0 2>/dev/null || echo "v0.0.0")
+          $version=$(git describe --tags --match "v[0-9]*" --abbrev=0 2>$null || echo "v0.0.0")
           $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
           $gitHash=$(git rev-parse HEAD)
           echo "Version: $version"
@@ -41,7 +41,7 @@ jobs:
 
       - name: Build Windows Executable
         run: |
-          $version=$(git describe --tags --match "v[0-9]*" --abbrev=0 2>/dev/null || echo "v0.0.0")
+          $version=$(git describe --tags --match "v[0-9]*" --abbrev=0 2>$null || echo "v0.0.0")
           $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
           $gitHash=$(git rev-parse HEAD)
           $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
@@ -67,7 +67,7 @@ jobs:
           go-version: 1.25.3
       - name: Build Windows Executable
         run: |
-          $version=$(git describe --tags --match "v[0-9]*" --abbrev=0 2>/dev/null || echo "v0.0.0")
+          $version=$(git describe --tags --match "v[0-9]*" --abbrev=0 2>$null || echo "v0.0.0")
           $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
           $gitHash=$(git rev-parse HEAD)
           $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
