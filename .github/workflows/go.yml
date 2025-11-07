@@ -30,9 +30,21 @@ jobs:
         run: |
           go version
           go mod tidy
+      - name: Print Version Information
+        run: |
+          $version=$(git describe --tags --always --dirty)
+          $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+          $gitHash=$(git rev-parse HEAD)
+          echo "Version: $version"
+          echo "Build Date: $buildDate"
+          echo "Git Hash: $gitHash"
       - name: Build Windows Executable
         run: |
-          go build -ldflags "-s -w" -o KKCardModCheck.exe -trimpath
+          $version=$(git describe --tags --always --dirty)
+          $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+          $gitHash=$(git rev-parse HEAD)
+          $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
+          go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
       - name: Create Release Archive
         run: |
           Compress-Archive -Path KKCardModCheck.exe -DestinationPath KKCardModCheck.zip
@@ -54,7 +66,11 @@ jobs:
           go-version: 1.25.3
       - name: Build Windows Executable
         run: |
-          go build -ldflags "-s -w" -o KKCardModCheck.exe -trimpath
+          $version=$(git describe --tags --always --dirty)
+          $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+          $gitHash=$(git rev-parse HEAD)
+          $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
+          go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
       - name: Create Release Archive
         run: |
           Compress-Archive -Path KKCardModCheck.exe -DestinationPath KKCardModCheck.zip
