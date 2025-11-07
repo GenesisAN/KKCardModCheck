@@ -33,61 +33,32 @@ jobs:
         run: |
           go version
           go mod tidy
-
-      - name: Run build.ps1 to Emit Metadata
+      - name: Build Windows Executable
         run: |
-          .\build.ps1 -EmitMetadata
-      - name: Run build.ps1 to Build Executable
-        run: |
-          .\build.ps1 -Build
-
-      - name: Create Release Archive
-        run: |
-          Compress-Archive -Path KKCardModCheck.exe -DestinationPath KKCardModCheck.zip
+          git log -1 > commit_log.txt
+          $version=$(git describe --tags --match "v[0-9]*" --always)
+          $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+          $gitHash=$(git rev-parse --short HEAD)
+          $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
+          go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: KKCardModCheck.zip
-          path: ./KKCardModCheck.zip
+          name: KKCardModCheck.exe
+          path: ./KKCardModCheck.exe
 
   release:
     runs-on: windows-latest
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up Go
-        uses: actions/setup-go@v3
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v3
         with:
-          go-version: 1.25.3
-      - name: Build Windows Executable
-        run: |
-          function Get-GitInfo {
-              $info = [ordered]@{ Version = 'v0.0.0'; GitHash = 'unknown' }
-              if (Get-Command git -ErrorAction SilentlyContinue) {
-                  try {
-                      $gitHash = git rev-parse --short HEAD 2>$null
-                      if ($gitHash) { $info.GitHash = $gitHash.Trim() }
-                      $descr = git describe --tags --match "v[0-9]*" --always 2>$null
-                      if ($descr) { $info.Version = $descr.Trim() }
-                  } catch {
-                      # keep defaults
-                  }
-              }
-              return $info
-          }
-
-          $git = Get-GitInfo
-          $version = $git.Version
-          $buildDate = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
-          $gitHash = $git.GitHash
-          $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
-          go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
-      - name: Create Release Archive
+          name: KKCardModCheck.exe
+      - name: Create ZIP Archive
         run: |
           Compress-Archive -Path KKCardModCheck.exe -DestinationPath KKCardModCheck.zip
-      - name: Generate Commit Log
-        run: git log -1 > commit_log.txt
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
