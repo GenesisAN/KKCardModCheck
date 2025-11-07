@@ -2,10 +2,7 @@ module KKCardModCheck
 
 go 1.25.3
 
-require (
-	github.com/AllenDang/giu v0.14.1
-	github.com/tcnksm/go-latest v0.0.0-20170313132115-e3007ae9052e
-)
+require github.com/AllenDang/giu v0.14.1
 
 require (
 	github.com/philhofer/fwd v1.1.2 // indirect
@@ -21,10 +18,7 @@ require (
 	github.com/faiface/mainthread v0.0.0-20171120011319-8b78f0a41ae3 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
-	github.com/google/go-github v17.0.0+incompatible // indirect
-	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gucio321/glm-go v0.0.0-20241029220517-e1b5a3e011c8 // indirect
-	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0
 	github.com/mazznoer/csscolorparser v0.1.6 // indirect
 	github.com/napsy/go-css v1.0.0 // indirect
@@ -43,7 +37,6 @@ require (
 	golang.design/x/hotkey v0.4.1 // indirect
 	golang.design/x/mainthread v0.3.0 // indirect
 	golang.org/x/image v0.27.0 // indirect
-	golang.org/x/net v0.46.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	gopkg.in/eapache/queue.v1 v1.1.0 // indirect
