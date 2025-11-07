@@ -19,6 +19,30 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.25.3
+      - name: Print Version Information
+        run: |
+          function Get-GitInfo {
+              $info = [ordered]@{ Version = 'dev'; GitHash = 'unknown' }
+              if (Get-Command git -ErrorAction SilentlyContinue) {
+                  try {
+                      $gitHash = git rev-parse --short HEAD 2>$null
+                      if ($gitHash) { $info.GitHash = $gitHash.Trim() }
+                      $descr = git describe --tags --always 2>$null
+                      if ($descr) { $info.Version = $descr.Trim() }
+                  } catch {
+                      # keep defaults
+                  }
+              }
+              return $info
+          }
+
+          $git = Get-GitInfo
+          $version = $git.Version
+          $buildDate = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+          $gitHash = $git.GitHash
+          echo "Version: $version"
+          echo "Build Date: $buildDate"
+          echo "Git Hash: $gitHash"
       - name: Cache Go modules
         uses: actions/cache@v4
         with:
@@ -26,14 +50,6 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - name: Print Version Information
-        run: |
-          $version=$(git describe --tags --match "v[0-9]*" --abbrev=0 2>$null || echo "v0.0.0")
-          $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
-          $gitHash=$(git rev-parse HEAD)
-          echo "Version: $version"
-          echo "Build Date: $buildDate"
-          echo "Git Hash: $gitHash"
       - name: Install dependencies
         run: |
           go version
@@ -41,9 +57,25 @@ jobs:
 
       - name: Build Windows Executable
         run: |
-          $version=$(git describe --tags --match "v[0-9]*" --abbrev=0 2>$null || echo "v0.0.0")
-          $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
-          $gitHash=$(git rev-parse HEAD)
+          function Get-GitInfo {
+              $info = [ordered]@{ Version = 'dev'; GitHash = 'unknown' }
+              if (Get-Command git -ErrorAction SilentlyContinue) {
+                  try {
+                      $gitHash = git rev-parse --short HEAD 2>$null
+                      if ($gitHash) { $info.GitHash = $gitHash.Trim() }
+                      $descr = git describe --tags --always 2>$null
+                      if ($descr) { $info.Version = $descr.Trim() }
+                  } catch {
+                      # keep defaults
+                  }
+              }
+              return $info
+          }
+
+          $git = Get-GitInfo
+          $version = $git.Version
+          $buildDate = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+          $gitHash = $git.GitHash
           $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
           go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
       - name: Create Release Archive
@@ -67,9 +99,25 @@ jobs:
           go-version: 1.25.3
       - name: Build Windows Executable
         run: |
-          $version=$(git describe --tags --match "v[0-9]*" --abbrev=0 2>$null || echo "v0.0.0")
-          $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
-          $gitHash=$(git rev-parse HEAD)
+          function Get-GitInfo {
+              $info = [ordered]@{ Version = 'dev'; GitHash = 'unknown' }
+              if (Get-Command git -ErrorAction SilentlyContinue) {
+                  try {
+                      $gitHash = git rev-parse --short HEAD 2>$null
+                      if ($gitHash) { $info.GitHash = $gitHash.Trim() }
+                      $descr = git describe --tags --always 2>$null
+                      if ($descr) { $info.Version = $descr.Trim() }
+                  } catch {
+                      # keep defaults
+                  }
+              }
+              return $info
+          }
+
+          $git = Get-GitInfo
+          $version = $git.Version
+          $buildDate = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+          $gitHash = $git.GitHash
           $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
           go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
       - name: Create Release Archive
