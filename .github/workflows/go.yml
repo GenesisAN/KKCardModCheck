@@ -52,6 +52,20 @@ jobs:
     permissions:
       contents: write # 需要写权限来创建 Release
     steps:
+      - name: Build Changelog File
+        uses: mikepenz/release-changelog-builder-action@v5
+        with:
+          configuration: .github/release-changelog-builder-config.json
+          toTag: ${{ github.ref_name }}
+          mode: COMMIT
+          outputFile: ./CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Print Release Body
+        run: |
+          Write-Host "==== CHANGELOG.md ===="
+          Get-Content -Raw CHANGELOG.md
+          Write-Host "==== END CHANGELOG.md ===="
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # 拉取完整的 Git 历史记录
@@ -64,20 +78,6 @@ jobs:
         run: |
           go version
           go mod tidy
-      - name: Build Changelog File
-        uses: mikepenz/release-changelog-builder-action@v5
-        with:
-          configuration: .github/release-changelog-builder-config.json
-          toTag: ${{ github.ref_name }}
-          mode: COMMIT
-          outputFile: CHANGELOG.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Print Release Body
-        run: |
-          Write-Host "==== CHANGELOG.md ===="
-          Get-Content -Raw CHANGELOG.md
-          Write-Host "==== END CHANGELOG.md ===="
       - name: Build Windows Executable
         run: |
           git log -1 > commit_log.txt
@@ -96,7 +96,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          body: CHANGELOG.md
+          body: ${{steps.github_release.outputs.changelog}}
           files: |
             ./KKCardModCheck_*.zip
             ./CHANGELOG.md
+          
