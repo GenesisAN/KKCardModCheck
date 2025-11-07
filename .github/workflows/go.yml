@@ -58,6 +58,52 @@ jobs:
         with:
           toTag: ${{ github.ref_name }}
           mode: COMMIT
+          configurationJson: |
+            {
+              "template": "#{{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
+              "categories": [
+              {
+                "title": "## 🚀 新功能",
+                "labels": ["feature", "feat", "enhancement", "新功能"]
+              },
+              {
+                "title": "## 🐛 修复",
+                "labels": ["fix", "bugfix", "bug", "修复"]
+              },
+              {
+                "title": "## 🔧 优化",
+                "labels": ["improve", "improvement", "tweak", "优化", "调整"]
+              },
+              {
+                "title": "## 🧪 测试",
+                "labels": ["test", "tests", "testing", "测试"]
+              },
+              {
+                "title": "## 📝 文档",
+                "labels": ["docs", "documentation", "文档"]
+              },
+              {
+                "title": "## 🎨 样式",
+                "labels": ["style", "formatting", "样式"]
+              },
+              {
+                "title": "## ♻️ 重构",
+                "labels": ["refactor", "refactoring", "重构"]
+              },
+              {
+                "title": "## ⚡ 性能",
+                "labels": ["perf", "performance", "optimization", "性能"]
+              },
+              {
+                "title": "## 🔧 杂项",
+                "labels": ["chore", "build", "ci", "杂项"]
+              },
+              {
+                "title": "## 📦 依赖",
+                "labels": ["dependencies", "deps", "dependency", "依赖"]
+              }
+              ]
+            }
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
