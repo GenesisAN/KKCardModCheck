@@ -1,34 +1,31 @@
-# This workflow builds and releases a Go project for Windows.
-# It triggers on push and tag events.
-
+# 分离 build 和 release 的触发条件
 name: Go Build and Release
 
 on:
+  # 统一使用一个 push 事件：main 分支普通提交 或 v*.*.* 标签推送
   push:
     branches:
-      - "main" # 仅在 main 分支更新时触发
+      - main
     tags:
-      - "v*.*.*" # 仅在符合 v*.*.* 模式的标签推送时触发
+      - 'v*.*.*'
+
+  # 手动触发（可选择运行任一 job）
+  workflow_dispatch:
 
 jobs:
   build:
+    # 仅 main 分支 push 且非 tag push 时运行
+    if: github.ref == 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # 拉取完整的 Git 历史记录
           tags: true     # 确保拉取所有标签
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: 1.25.3
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
       - name: Install dependencies
         run: |
           go version
@@ -49,21 +46,39 @@ jobs:
 
   release:
     runs-on: windows-latest
-    needs: build # 确保 release 作业依赖 build 作业
-    if: startsWith(github.ref, 'refs/tags/v') # 仅在标签推送时触发
+    # 仅在 v*.*.* tag push 时运行
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - name: Download Build Artifact
-        uses: actions/download-artifact@v3
+      - uses: actions/checkout@v4
         with:
-          name: KKCardModCheck.exe
+          fetch-depth: 0 # 拉取完整的 Git 历史记录
+          tags: true     # 确保拉取所有标签
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.25.3
+      - name: Install dependencies
+        run: |
+          go version
+          go mod tidy
+      - name: Build Windows Executable
+        run: |
+          git log -1 > commit_log.txt
+          $version=$(git describe --tags --match "v[0-9]*" --always)
+          $buildDate=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+          $gitHash=$(git rev-parse --short HEAD)
+          $ldflags="-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
+          go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
       - name: Create ZIP Archive
         run: |
-          Compress-Archive -Path KKCardModCheck.exe -DestinationPath KKCardModCheck.zip
+          $tag = $env:GITHUB_REF -replace 'refs/tags/', ''
+          $zip = "KKCardModCheck_$tag.zip"
+          Compress-Archive -Path KKCardModCheck.exe -DestinationPath $zip -Force
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ./KKCardModCheck.zip
+            ./KKCardModCheck_*.zip
             ./commit_log.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
