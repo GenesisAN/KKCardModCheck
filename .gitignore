@@ -1,3 +1,5 @@
 # Ignore Delve temporary debug binaries
 *.exe
 build/
+# Added by goreleaser init:
+dist/
