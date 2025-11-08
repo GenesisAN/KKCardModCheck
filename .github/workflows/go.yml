@@ -1,10 +1,11 @@
 # 分离 build 和 release 的触发条件
-name: Push Build
+name: 推送构建
 
 on: [ push ]
 
 jobs:
   build:
+    name: Build binary CI
     # 仅 main 分支 push 且非 tag push 时运行
     if: github.ref == 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
     runs-on: windows-latest
@@ -17,6 +18,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: 1.25.3
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Install dependencies
         run: |
           go version
@@ -30,118 +39,9 @@ jobs:
           $ldflags = "-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
           Write-Host "Building ldflags: $ldflags"
           go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
+        
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: KKCardModCheck.exe
           path: ./KKCardModCheck.exe
-
-  # release:
-  #   runs-on: windows-latest
-  #   # 仅在 v*.*.* tag push 时运行
-  #   # if: startsWith(github.ref, 'refs/tags/v')
-  #   permissions:
-  #     contents: write # 需要写权限来创建 Release
-  #   steps:
-  #     - id: build_changelog
-  #       name: Build Changelog File
-  #       uses: mikepenz/release-changelog-builder-action@v5
-  #       with:
-  #         # toTag: ${{ github.ref_name }}
-  #         mode: COMMIT
-  #         configurationJson: |
-  #           {
-  #             "template": "#{{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
-  #             "categories": [
-  #             {
-  #               "title": "## 🚀 新功能",
-  #               "labels": ["feature", "feat", "enhancement", "新功能"]
-  #             },
-  #             {
-  #               "title": "## 🐛 修复",
-  #               "labels": ["fix", "bugfix", "bug", "修复"]
-  #             },
-  #             {
-  #               "title": "## 🔧 优化",
-  #               "labels": ["improve", "improvement", "tweak", "优化", "调整"]
-  #             },
-  #             {
-  #               "title": "## 🧪 测试",
-  #               "labels": ["test", "tests", "testing", "测试"]
-  #             },
-  #             {
-  #               "title": "## 📝 文档",
-  #               "labels": ["docs", "documentation", "文档"]
-  #             },
-  #             {
-  #               "title": "## 🎨 样式",
-  #               "labels": ["style", "formatting", "样式"]
-  #             },
-  #             {
-  #               "title": "## ♻️ 重构",
-  #               "labels": ["refactor", "refactoring", "重构"]
-  #             },
-  #             {
-  #               "title": "## ⚡ 性能",
-  #               "labels": ["perf", "performance", "optimization", "性能"]
-  #             },
-  #             {
-  #               "title": "## 🔧 杂项",
-  #               "labels": ["chore", "build", "ci", "杂项"]
-  #             },
-  #             {
-  #               "title": "## 📦 依赖",
-  #               "labels": ["dependencies", "deps", "dependency", "依赖"]
-  #             }
-  #             ]
-  #           }
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  #     # 把 action 的输出写入到 CHANGELOG.md 文件并打印（在 Windows runner 上使用 PowerShell）
-  #     - name: Save and Show Changelog (PowerShell)
-  #       env:
-  #         CHANGELOG: ${{ steps.build_changelog.outputs.changelog }}
-  #       run: |
-  #         # 将输出写入文件以便 later steps 可以上传
-  #         Set-Content -Path CHANGELOG.md -Value $env:CHANGELOG -NoNewline
-  #         Write-Host "CHANGELOG saved to CHANGELOG.md"
-  #         Write-Host "---- BEGIN CHANGELOG ----"
-  #         Write-Host $env:CHANGELOG
-  #         Write-Host "----  END CHANGELOG  ----"
-
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0 # 拉取完整的 Git 历史记录
-  #         fetch-tags: true # 确保拉取所有标签（正确字段）
-  #     - name: Set up Go
-  #       uses: actions/setup-go@v5
-  #       with:
-  #         go-version: 1.25.3
-  #     - name: Install dependencies
-  #       run: |
-  #         go version
-  #         go mod tidy
-  #     - name: Build Windows Executable
-  #       run: |
-  #         git log -1 > commit_log.txt
-  #         $version = $(git describe --tags --match "v[0-9]*" --always)
-  #         $buildDate = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
-  #         $gitHash = $(git rev-parse --short HEAD)
-  #         $ldflags = "-H=windowsgui -s -w -X main.version=$version -X main.buildDate=$buildDate -X main.gitHash=$gitHash"
-  #         Write-Host "Building ldflags: $ldflags"
-  #         go build -ldflags "$ldflags" -o KKCardModCheck.exe -trimpath
-  #     - name: Create ZIP Archive
-  #       run: |
-  #         $tag = $env:GITHUB_REF -replace 'refs/tags/', ''
-  #         $zip = "KKCardModCheck_$tag.zip"
-  #         Compress-Archive -Path KKCardModCheck.exe -DestinationPath $zip -Force
-  #     - name: Create GitHub Release
-  #       uses: softprops/action-gh-release@v1
-  #       with:
-  #         token: ${{ secrets.GITHUB_TOKEN }}
-  #         body: ${{ steps.build_changelog.outputs.changelog }}
-  #         prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-b') || contains(github.ref, '-a') }}
-  #         files: |
-  #           ./KKCardModCheck_*.zip
-  #           ./CHANGELOG.md
