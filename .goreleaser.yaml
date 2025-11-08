@@ -28,14 +28,6 @@ builds:
       -X main.gitHash={{ .Commit }}
       -X main.mod=release
       -X main.APP_VERSION={{ .Version }}
-archives:
-  - formats: [ 'zip' ]
-    # this name template makes the OS and Arch compatible with the results of `uname`.
-    name_template: "{{ .ProjectName }-v{{ .Version }}"
-    # use zip for windows archives
-    format_overrides:
-      - goos: windows
-      - formats: [ 'zip' ]
 changelog:
   sort: asc
   filters:
@@ -44,7 +36,6 @@ changelog:
       - "^test:"
       - fix typo
       - go mod tidy
-  format: "{{.SHA}}: {{.Message}} (@{{.AuthorUsername}})"
   groups:
   - title: Features
     regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
@@ -55,6 +46,17 @@ changelog:
   - title: Others
     order: 999
 
+archives:
+  - name_template: >-
+      {{- .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end -}}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
 release:
   footer: >-
 
