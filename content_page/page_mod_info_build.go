@@ -216,7 +216,7 @@ func ModInfoBuild() g.Layout {
 		g.Label("如果你添加了新的 Mod，记得重新生成 Mod 信息文件。"),
 		g.Separator(),
 		g.Label("可选配置:"),
-		g.Checkbox("启动时自动检测 Mod 目录变化，如果有新 Mod 自动进行增量构建", &config.Instance.AutoDetectModChanges),
+		//g.Checkbox("启动时自动检测 Mod 目录变化，如果有新 Mod 自动进行增量构建", &config.Instance.AutoDetectModChanges),
 		g.Separator(),
 	}
 
