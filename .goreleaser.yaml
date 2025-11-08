@@ -51,19 +51,20 @@ changelog:
         - Merge branch
         - go mod tidy
   groups:
-      - title: "New Features"
+      # 分组 changelog，汉化美化
+      - title: "✨ 新功能"
         regexp: '^.*?feat(\(.+\))??!?:.+$'
         order: 100
-      - title: "Security updates"
+      - title: "🔒 安全更新"
         regexp: '^.*?sec(\(.+\))??!?:.+$'
         order: 150
-      - title: "Bug fixes"
+      - title: "🐞 修复与重构"
         regexp: '^.*?(fix|refactor)(\(.+\))??!?:.+$'
         order: 200
-      - title: "Documentation updates"
+      - title: "📚 文档更新"
         regexp: ^.*?docs?(\(.+\))??!?:.+$
         order: 400
-      - title: Other work
+      - title: "🛠 其他工作"
         order: 9999
 archives:
   - name_template: >-
@@ -76,9 +77,3 @@ archives:
     format_overrides:
       - goos: windows
         formats: [zip]
-release:
-  footer: >-
-
-    ---
-
-    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
