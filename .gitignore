@@ -1,5 +1,6 @@
 # Ignore Delve temporary debug binaries
 *.exe
 build/
+KKCardModCheck_Data/
 # Added by goreleaser init:
 dist/
