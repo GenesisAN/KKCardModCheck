@@ -3,9 +3,14 @@ package content_page
 import (
 	"KKCardModCheck/config"
 	"KKCardModCheck/util"
+	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
+	"sort"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	g "github.com/AllenDang/giu"
 	ic "github.com/GenesisAN/illusionsCard"
@@ -19,6 +24,24 @@ var usedMods []string
 var usedModsText string
 var checked bool        // 表示是否已执行过检查，未检查时不显示子 Tab
 var lastCardPath string // 记录上一次选择的卡片路径，路径变化则重置检查结果
+var isChecking bool
+var cancelRequested atomic.Bool
+var progressParsed int
+var progressErrors int
+var checkMu sync.Mutex
+
+func resetCheckStateLocked() {
+	missingMods = nil
+	missingModsText = ""
+	usedMods = nil
+	usedModsText = ""
+	tips = ""
+	checked = false
+	isChecking = false
+	progressParsed = 0
+	progressErrors = 0
+	cancelRequested.Store(false)
+}
 
 // 使用嵌套 Tab 展示“缺失的 Mod / 使用的 Mod”，默认先显示“缺失的 Mod”
 
@@ -28,15 +51,25 @@ func CardModVerification() *g.TabItemWidget {
 	if lastCardPath == "" {
 		lastCardPath = config.Instance.CardPath
 	} else if config.Instance.CardPath != lastCardPath {
-		// 路径发生变化 -> 重置结果
-		missingMods = nil
-		missingModsText = ""
-		usedMods = nil
-		usedModsText = ""
-		tips = ""
-		checked = false
+		checkMu.Lock()
+		if isChecking {
+			cancelRequested.Store(true)
+			tips = "路径变化，正在取消当前检查..."
+		} else {
+			resetCheckStateLocked()
+		}
+		checkMu.Unlock()
 		lastCardPath = config.Instance.CardPath
 	}
+	checkMu.Lock()
+	localTips := tips
+	localChecked := checked
+	localMissingText := missingModsText
+	localUsedText := usedModsText
+	localIsChecking := isChecking
+	localProgressParsed := progressParsed
+	localProgressErrors := progressErrors
+	checkMu.Unlock()
 	layout := []g.Widget{
 		g.Label(" 选择你要检查的卡片/卡片目录 "),
 		g.Separator(),
@@ -54,68 +87,116 @@ func CardModVerification() *g.TabItemWidget {
 		layout = append(layout, g.Separator())
 	}
 
-	if tips != "" {
+	if localTips != "" {
 		layout = append(layout,
 			g.Align(g.AlignCenter).To(
-				g.Label(tips),
+				g.Label(localTips),
+			),
+		)
+	}
+	if localIsChecking {
+		progressText := fmt.Sprintf("已解析 %d 张，错误 %d 个", localProgressParsed, localProgressErrors)
+		layout = append(layout,
+			g.Separator(),
+			g.Align(g.AlignCenter).To(
+				g.Label(progressText),
+			),
+			g.Align(g.AlignCenter).To(
+				g.Button("取消").Size(120, 28).OnClick(func() {
+					cancelRequested.Store(true)
+					checkMu.Lock()
+					tips = "正在取消，请稍候..."
+					checkMu.Unlock()
+					g.Update()
+				}),
 			),
 		)
 	}
 	// 使用嵌套 TabBar 展示子页面：先显示“缺失的 Mod”，每个子页内包含复制/清除按钮
-	if checked {
+	if localChecked {
 		layout = append(layout,
 			g.TabBar().TabItems(
 				g.TabItem(" 缺失的 Mod ").Layout(
 					g.Row(
 						g.Button("清除结果").Size(120, 28).OnClick(func() {
+							checkMu.Lock()
 							missingMods = nil
 							missingModsText = ""
 							usedMods = nil
 							usedModsText = ""
 							tips = ""
 							checked = false
+							checkMu.Unlock()
 							g.Update()
 						}),
 						g.Button("复制到剪贴板").Size(140, 28).OnClick(func() {
-							if missingModsText == "" {
+							checkMu.Lock()
+							text := missingModsText
+							checkMu.Unlock()
+							if text == "" {
 								return
 							}
-							if err := util.CopyToClipboard(missingModsText); err != nil {
-								fmt.Printf("复制到剪切板失败: %v\n", err)
-								tips = "复制到剪贴板失败"
-							} else {
-								tips = "已复制到剪贴板"
-							}
+							checkMu.Lock()
+							tips = "复制中..."
+							checkMu.Unlock()
 							g.Update()
+							go func(payload string) {
+								if err := util.CopyToClipboard(payload); err != nil {
+									fmt.Printf("复制到剪切板失败: %v\n", err)
+									checkMu.Lock()
+									tips = "复制到剪贴板失败"
+									checkMu.Unlock()
+								} else {
+									checkMu.Lock()
+									tips = "已复制到剪贴板"
+									checkMu.Unlock()
+								}
+								g.Update()
+							}(text)
 						}),
 					),
-					g.InputTextMultiline(&missingModsText).Size(-1, -1).Flags(g.InputTextFlagsReadOnly|g.InputTextFlagsAllowTabInput|g.InputTextFlagsNoHorizontalScroll),
+					g.InputTextMultiline(&localMissingText).Size(-1, -1).Flags(g.InputTextFlagsReadOnly|g.InputTextFlagsAllowTabInput|g.InputTextFlagsNoHorizontalScroll),
 				),
 				g.TabItem(" 使用的 Mod ").Layout(
 					g.Row(
 						g.Button("清除结果").Size(120, 28).OnClick(func() {
+							checkMu.Lock()
 							missingMods = nil
 							missingModsText = ""
 							usedMods = nil
 							usedModsText = ""
 							tips = ""
 							checked = false
+							checkMu.Unlock()
 							g.Update()
 						}),
 						g.Button("复制到剪贴板").Size(140, 28).OnClick(func() {
-							if usedModsText == "" {
+							checkMu.Lock()
+							text := usedModsText
+							checkMu.Unlock()
+							if text == "" {
 								return
 							}
-							if err := util.CopyToClipboard(usedModsText); err != nil {
-								fmt.Printf("复制到剪切板失败: %v\n", err)
-								tips = "复制到剪贴板失败"
-							} else {
-								tips = "已复制到剪贴板"
-							}
+							checkMu.Lock()
+							tips = "复制中..."
+							checkMu.Unlock()
 							g.Update()
+							go func(payload string) {
+								if err := util.CopyToClipboard(payload); err != nil {
+									fmt.Printf("复制到剪切板失败: %v\n", err)
+									checkMu.Lock()
+									tips = "复制到剪贴板失败"
+									checkMu.Unlock()
+								} else {
+									checkMu.Lock()
+									tips = "已复制到剪贴板"
+									checkMu.Unlock()
+								}
+								g.Update()
+							}(text)
 						}),
 					),
-					g.InputTextMultiline(&usedModsText).Size(-1, -1).Flags(g.InputTextFlagsReadOnly|g.InputTextFlagsAllowTabInput|g.InputTextFlagsNoHorizontalScroll),
+					g.InputTextMultiline(&localUsedText).Size(-1, -1).Flags(g.InputTextFlagsReadOnly|g.InputTextFlagsAllowTabInput|g.InputTextFlagsNoHorizontalScroll),
 				),
 			),
 		)
@@ -124,94 +205,199 @@ func CardModVerification() *g.TabItemWidget {
 }
 
 func SingleCardCheck() {
-
-	localGUIDs, err := util.LoadModGUIDsFromJSON(config.Instance.ModInfoPath)
-	if err != nil {
-		tips = fmt.Sprintf("读取 MOD 文件失败：%s", err.Error())
+	checkMu.Lock()
+	if isChecking {
+		tips = "正在检查，请稍候..."
+		checkMu.Unlock()
+		g.Update()
 		return
 	}
+	isChecking = true
+	checked = false
+	progressParsed = 0
+	progressErrors = 0
+	cancelRequested.Store(false)
+	tips = "开始解析..."
+	checkMu.Unlock()
+	g.Update()
 
-	// 根据路径后缀决定解析模式：
-	//  - 以 .png 结尾 -> 单卡解析
-	//  - 无后缀 -> 视为目录，批量解析目录下所有 .png 文件
-	//  - 其他有后缀 -> 不解析
-	ext := filepath.Ext(config.Instance.CardPath)
-	var cards []Base.CardInterface
-	if ext == ".png" {
-		// 单张卡片
-		card, err := ic.ReadCardFromPath((config.Instance.CardPath))
+	go func() {
+		localGUIDs, err := util.LoadModGUIDsFromJSON(config.Instance.ModInfoPath)
 		if err != nil {
-			tips = fmt.Sprintf("卡片读取失败: %s", err.Error())
+			checkMu.Lock()
+			tips = fmt.Sprintf("读取 MOD 文件失败：%s", err.Error())
+			isChecking = false
+			checkMu.Unlock()
+			g.Update()
 			return
 		}
-		fmt.Println("→ 解析卡片成功:", card.GetPath())
-		cards = []Base.CardInterface{card}
-	} else if ext == "" {
-		// 目录模式 - 递归查找所有 png 文件并尝试解析
-		if !util.IsExist(config.Instance.CardPath) {
-			tips = "所选目录不存在，无法解析"
-			return
+
+		ext := filepath.Ext(config.Instance.CardPath)
+		missing := make(map[string]Base.ResolveInfo)
+		usedSet := make(map[string]struct{})
+		usedList := make([]string, 0, 128)
+		parsedCount := 0
+		errorCount := 0
+		foundCount := 0
+		updateEvery := 20
+
+		updateProgress := func(force bool) {
+			if !force && parsedCount%updateEvery != 0 {
+				return
+			}
+			checkMu.Lock()
+			progressParsed = parsedCount
+			progressErrors = errorCount
+			tips = fmt.Sprintf("正在解析...已处理 %d 张", parsedCount)
+			checkMu.Unlock()
+			g.Update()
 		}
-		files := util.GetAllFiles(config.Instance.CardPath, ".png")
-		if len(files) == 0 {
-			tips = "目录中未找到任何 .png 卡片"
-			return
+
+		processCard := func(card Base.CardInterface) {
+			if card == nil {
+				return
+			}
+			parsedCount++
+			for _, guid := range card.GetZipmodsDependencies() {
+				if guid == "" {
+					continue
+				}
+				if _, ok := usedSet[guid]; !ok {
+					usedSet[guid] = struct{}{}
+					usedList = append(usedList, guid)
+				}
+			}
+			if comparer, ok := card.(interface {
+				CompareMissingMods([]string) map[string]Base.ResolveInfo
+			}); ok {
+				for guid, info := range comparer.CompareMissingMods(localGUIDs) {
+					missing[guid] = info
+				}
+			}
+			updateProgress(false)
 		}
-		for _, f := range files {
-			card, err := ic.ReadCardFromPath(f)
+
+		if ext == ".png" {
+			card, err := ic.ReadCardFromPath(config.Instance.CardPath)
 			if err != nil {
-				// 解析单个卡片失败则记录到控制台并跳过
-				fmt.Printf("解析卡片失败 (%s)：%v\n", f, err)
-				continue
+				checkMu.Lock()
+				tips = fmt.Sprintf("卡片读取失败: %s", err.Error())
+				isChecking = false
+				checkMu.Unlock()
+				g.Update()
+				return
 			}
 			fmt.Println("→ 解析卡片成功:", card.GetPath())
-			cards = append(cards, card)
-		}
-		if len(cards) == 0 {
-			tips = "未能解析任何卡片，检查目录或卡片格式是否正确"
+			processCard(card)
+		} else if ext == "" {
+			if !util.IsExist(config.Instance.CardPath) {
+				checkMu.Lock()
+				tips = "所选目录不存在，无法解析"
+				isChecking = false
+				checkMu.Unlock()
+				g.Update()
+				return
+			}
+
+			errCanceled := errors.New("canceled")
+			walkErr := filepath.Walk(config.Instance.CardPath, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return nil
+				}
+				if cancelRequested.Load() {
+					return errCanceled
+				}
+				if info == nil || info.IsDir() {
+					return nil
+				}
+				if filepath.Ext(path) != ".png" {
+					return nil
+				}
+				foundCount++
+				card, err := ic.ReadCardFromPath(path)
+				if err != nil {
+					fmt.Printf("解析卡片失败 (%s)：%v\n", path, err)
+					errorCount++
+					updateProgress(false)
+					return nil
+				}
+				fmt.Println("→ 解析卡片成功:", card.GetPath())
+				processCard(card)
+				if cancelRequested.Load() {
+					return errCanceled
+				}
+				return nil
+			})
+
+			if walkErr != nil {
+				if errors.Is(walkErr, errCanceled) {
+					checkMu.Lock()
+					tips = "已取消"
+					isChecking = false
+					checkMu.Unlock()
+					g.Update()
+					return
+				}
+				checkMu.Lock()
+				tips = fmt.Sprintf("目录遍历失败：%v", walkErr)
+				isChecking = false
+				checkMu.Unlock()
+				g.Update()
+				return
+			}
+
+			if foundCount == 0 {
+				checkMu.Lock()
+				tips = "目录中未找到任何 .png 卡片"
+				isChecking = false
+				checkMu.Unlock()
+				g.Update()
+				return
+			}
+		} else {
+			checkMu.Lock()
+			tips = "所选路径不是 .png 文件或目录，无法解析"
+			isChecking = false
+			checkMu.Unlock()
+			g.Update()
 			return
 		}
-	} else {
-		tips = "所选路径不是 .png 文件或目录，无法解析"
-		return
-	}
 
-	missing := util.CollectMissingMods(cards, localGUIDs)
-	// 聚合所有卡片引用的 Mod 并去重
-	var allUsed []string
-	for _, c := range cards {
-		if c == nil {
-			continue
+		if cancelRequested.Load() {
+			checkMu.Lock()
+			tips = "已取消"
+			isChecking = false
+			checkMu.Unlock()
+			g.Update()
+			return
 		}
-		allUsed = append(allUsed, c.GetZipmodsDependencies()...)
-	}
-	usedMods = util.DedupeStrings(allUsed)
-	usedModsText = strings.Join(usedMods, "\n")
-	//ch
 
-	parsedCount := len(cards)
-	if len(missing) > 0 {
-		var lines []string
+		var missingLines []string
 		for guid, mod := range missing {
-			//如果guid为空则使用mod.Property
 			if guid == "" {
-				lines = append(lines, fmt.Sprintf("%s (GUID未知)", mod.Property))
+				missingLines = append(missingLines, fmt.Sprintf("%s (GUID未知)", mod.Property))
 			} else {
-				lines = append(lines, guid)
+				missingLines = append(missingLines, guid)
 			}
 		}
-		// 在 GUI 中显示缺失的 Mod，而不写文件或弹窗
-		missingMods = lines
-		missingModsText = strings.Join(lines, "\n")
-		tips = fmt.Sprintf("检索完成，共解析 %d 张卡片，缺失 %d 个 MOD", parsedCount, len(lines))
-		checked = true
-		g.Update()
-	} else {
-		missingMods = nil
-		missingModsText = ""
-		tips = fmt.Sprintf("检索完成，共解析 %d 张卡片，没有缺失的MOD！", parsedCount)
-		checked = true
-		g.Update()
-	}
+		sort.Strings(missingLines)
+		sort.Strings(usedList)
 
+		checkMu.Lock()
+		missingMods = missingLines
+		missingModsText = strings.Join(missingLines, "\n")
+		usedMods = usedList
+		usedModsText = strings.Join(usedList, "\n")
+		if len(missingLines) > 0 {
+			tips = fmt.Sprintf("检索完成，共解析 %d 张卡片，缺失 %d 个 MOD", parsedCount, len(missingLines))
+		} else {
+			tips = fmt.Sprintf("检索完成，共解析 %d 张卡片，没有缺失的MOD！", parsedCount)
+		}
+		checked = true
+		isChecking = false
+		progressParsed = parsedCount
+		progressErrors = errorCount
+		checkMu.Unlock()
+		g.Update()
+	}()
 }
