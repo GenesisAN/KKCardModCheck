@@ -222,6 +222,15 @@ func SingleCardCheck() {
 	g.Update()
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				checkMu.Lock()
+				tips = fmt.Sprintf("解析过程中发生异常: %v", r)
+				isChecking = false
+				checkMu.Unlock()
+				g.Update()
+			}
+		}()
 		localGUIDs, err := util.LoadModGUIDsFromJSON(config.Instance.ModInfoPath)
 		if err != nil {
 			checkMu.Lock()
