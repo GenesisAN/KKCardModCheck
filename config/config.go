@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -23,6 +22,9 @@ type Config struct {
 }
 
 var ModInfoChage bool = false // 标记 Mod 信息是否有变更
+
+// 固定的应用名称，用于生成与可执行文件同级的 Data 目录，避免根据 exe 名称改变目录名
+const AppName = "KKCardModCheck"
 
 // 只读配置文件路径
 
@@ -120,12 +122,13 @@ func GetConfigPath() string {
 func GetDataDir() string {
 	exePath, err := os.Executable()
 	if err != nil {
-		// 回退到当前目录下的 Data 文件夹
-		_ = os.MkdirAll("./_Data", 0755)
-		return "./_Data"
+		// 回退到当前目录下的 <AppName>_Data 文件夹（避免根据 exe 名称变化）
+		fallback := "./" + AppName + "_Data"
+		_ = os.MkdirAll(fallback, 0755)
+		return fallback
 	}
-	exeName := filepath.Base(exePath)
-	appName := strings.TrimSuffix(exeName, filepath.Ext(exeName))
+	// 使用固定的 AppName 而不是可执行文件名，这能防止用户重命名 exe 导致 Data 目录变化
+	appName := AppName
 	dataDir := filepath.Join(filepath.Dir(exePath), appName+"_Data")
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		log.Printf("Unable to create data dir %s: %v", dataDir, err)
