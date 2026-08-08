@@ -2,6 +2,8 @@ module KKCardModCheck
 
 go 1.25.3
 
+replace github.com/GenesisAN/illusionsCard => ../illusionsCard
+
 require (
 	github.com/AllenDang/giu v0.14.1
 	github.com/tcnksm/go-latest v0.0.0-20170313132115-e3007ae9052e

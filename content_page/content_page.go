@@ -35,6 +35,7 @@ func MainContent() g.Layout {
 		g.Child().Border(true).Layout(
 			g.TabBar().TabItems(
 				CardModVerification(),
+				SceneCardToolsTab(),
 				ModeMatchTab(),
 				ModeCardUseTab(),
 				g.TabItem(" Mod信息构建 ").Layout(
