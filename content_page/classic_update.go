@@ -3,6 +3,7 @@ package content_page
 import (
 	"KKCardModCheck/util"
 	"fmt"
+	"strings"
 
 	g "github.com/AllenDang/giu"
 )
@@ -37,9 +38,9 @@ func classicSidebarWithUpdate() g.Widget {
 		classicNav("MOD 信息构建", pageModBuild),
 		classicNav("设置", pageSettings),
 		g.Custom(func() {
-			_, h := g.GetAvailableRegion()
-			if h > 150 {
-				g.Dummy(0, h-150).Build()
+			_, height := g.GetAvailableRegion()
+			if height > 150 {
+				g.Dummy(0, height-150).Build()
 			}
 		}),
 		classicUpdateStatusWidget(),
@@ -51,7 +52,10 @@ func classicSidebarWithUpdate() g.Widget {
 
 func classicUpdateStatusWidget() g.Widget {
 	widgets := g.Layout{g.Label("版本检查")}
+	current := strings.ToLower(strings.TrimSpace(classicVersionState.current))
 	switch {
+	case current == "" || current == "dev" || current == "development" || current == "unknown":
+		widgets = append(widgets, g.Label("开发构建，不检查更新"))
 	case classicVersionState.checking:
 		widgets = append(widgets, g.Label("正在检查..."))
 	case classicVersionState.outdated:

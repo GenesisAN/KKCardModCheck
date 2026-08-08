@@ -3,13 +3,14 @@ package main
 import (
 	"KKCardModCheck/config"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/tcnksm/go-latest"
 )
 
 var (
-	version   = "1.0.1"
+	version   = "dev"
 	buildDate = "unknown"
 	gitHash   = "unknown"
 	mod       = "debug"
@@ -28,11 +29,29 @@ func init() {
 	fmt.Println("Git Hash:", gitHash)
 	fmt.Println("Module Mode:", mod)
 	config.Load()
-	startVersionCheck()
+	if !isDevelopmentVersion(version) {
+		startVersionCheck()
+	}
+}
+
+func isDevelopmentVersion(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "", "dev", "development", "unknown":
+		return true
+	default:
+		return false
+	}
 }
 
 func startVersionCheck() {
 	versionMu.Lock()
+	if isDevelopmentVersion(version) {
+		version_res = nil
+		version_err = nil
+		versionChecking = false
+		versionMu.Unlock()
+		return
+	}
 	if versionChecking {
 		versionMu.Unlock()
 		return
