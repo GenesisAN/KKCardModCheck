@@ -1,3 +1,8 @@
 main {
-        background-color: hsla(0, 0%, 0%, 0);
+        background-color: #0b1220;
+        color: #f1f5f9;
+        frame-padding: 12, 8;
+        item-spacing: 10, 10;
+        frame-rounding: 6;
+        scrollbar-rounding: 8;
 }

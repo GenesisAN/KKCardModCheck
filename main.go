@@ -12,12 +12,10 @@ import (
 //go:embed style.css
 var cssStyle []byte
 
-// 主循环
 func loop() {
-	g.SingleWindowWithMenuBar().Layout(
-		AppMenuBar(),
-		content_page.InitialConfigWindow(),
-	)
+	latestVersion, outdated, checking, failed := versionSnapshot()
+	content_page.SetClassicVersionState(version, latestVersion, outdated, checking, failed, startVersionCheck)
+	g.SingleWindow().Layout(content_page.InitialConfigWindowClassicV8())
 }
 
 var wnd *g.MasterWindow
@@ -27,9 +25,10 @@ func main() {
 		log.Println("Window has closed. Saving configuration...")
 		config.Save()
 	}()
-	wnd = g.NewMasterWindow("KKCardModCheck V"+version, 1200, 900, 0)
-	if err := g.ParseCSSStyleSheet(cssStyle); err != nil {
-		panic(err)
-	}
+
+	wnd = g.NewMasterWindow("KKCardModCheck V"+version, 1200, 800, 0)
+	content_page.InitializeUIFonts()
+	wnd.SetDropCallback(content_page.HandleDroppedFiles)
+	wnd.SetSizeLimits(980, 680, 3840, 2160)
 	wnd.Run(loop)
 }

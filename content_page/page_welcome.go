@@ -2,7 +2,6 @@ package content_page
 
 import (
 	"KKCardModCheck/config"
-	"KKCardModCheck/giu/custom"
 	"KKCardModCheck/util"
 	"os"
 	"path/filepath"
@@ -10,80 +9,91 @@ import (
 	g "github.com/AllenDang/giu"
 )
 
-// Welcome shows the initial welcome/configuration UI
+// Welcome 显示统一视觉风格的首次使用配置页。
 func Welcome() g.Layout {
-	// 先构建 child 内部的 widget 列表，以便在需要时插入提示信息
-	childWidgets := g.Layout{
-		g.Align(g.AlignCenter).To(
-			g.Row(
-				g.Label("★"),
-				g.Label("欢迎使用 KKCardModCheck！"),
-				g.Label("★"),
-			),
-		),
-
-		g.Align(g.AlignCenter).To(
-			g.Label("遇到 BUG 可通过顶部菜单 \"关于 > BUG反馈\" 反馈"),
-		),
-		g.Align(g.AlignCenter).To(
-			g.Label("功能建议/提问请到 \"关于 > 讨论区\" 发帖"),
-		),
-		g.Align(g.AlignCenter).To(
-			g.Row(
-				g.Label("也可以来我们的"),
-				custom.ButtonStyleBlue.To(
-					g.Button("QQ群").OnClick(func() {
-						util.OpenURL("https://qm.qq.com/q/rza05u1550")
-					}),
-				),
-				g.Label("交流"),
-			),
-		),
-		g.Separator(),
-
-		g.Label("请先配置游戏目录以继续使用"),
-
-		g.Label("游戏目录是指 Koikatu_Data 文件夹，选中后点击保存并继续"),
-
-		g.Separator(),
-		util.FilePicker("游戏目录:", &config.Instance.GamePath).ForDirectories(),
-		g.Align(g.AlignCenter).To(
-			g.Button("保存并继续").Size(200, 80).OnClick(func() {
-				// 保存配置，若所选目录不是 Koikatu_Data 则提示但仍保存为 Mod 存放目录
-				config.Instance.InitConfig = true
-				config.Save()
-				// 检查最后一级目录名是否为 Koikatu_Data
-			}),
-		),
-	}
-	if config.Instance.GamePath != "" {
-		// 检查所选目录是否为 Koikatu_Data 本身，或者该目录下是否包含名为 Koikatu_Data 的子目录（仅查一层，不递归）
-		valid := false
-		if filepath.Base(config.Instance.GamePath) == "Koikatu_Data" {
-			valid = true
-		} else {
-			// 尝试读取所选目录的直接子项，查找名为 Koikatu_Data 的目录
-			if entries, err := os.ReadDir(config.Instance.GamePath); err == nil {
-				for _, e := range entries {
-					if e.IsDir() && e.Name() == "Koikatu_Data" {
-						valid = true
-						break
-					}
-				}
-			}
-		}
-		if !valid {
-			// 标记在界面显示提示（仍然保存路径并继续）
-			childWidgets = append(childWidgets,
-				g.Separator(),
-				g.Align(g.AlignCenter).To(
-					g.Label("警告: 所选文件夹不是 Koikatu游戏目录，因为其下不包含 Koikatu_Data 子文件夹。但程序可以把当前路径作为 Mod 存放目录来进行使用。"),
-				),
-			)
-		}
-	}
-
 	return g.Layout{
-		g.Child().Border(true).Layout(childWidgets...),
+		g.Custom(func() {
+			availableWidth, availableHeight := g.GetAvailableRegion()
+			panelWidth := float32(760)
+			panelHeight := float32(570)
+			if availableWidth < panelWidth+48 {
+				panelWidth = availableWidth - 48
+			}
+			if availableHeight > panelHeight {
+				g.Dummy(0, (availableHeight-panelHeight)/2).Build()
+			}
+			g.Align(g.AlignCenter).To(
+				panelStyle("welcome-panel", panelWidth, panelHeight,
+					g.Align(g.AlignCenter).To(textLabel("◆", 36, uiPrimary)),
+					g.Align(g.AlignCenter).To(titleLabel("欢迎使用 KKCardModCheck")),
+					g.Align(g.AlignCenter).To(mutedLabel("角色卡 MOD 依赖检查与管理工具")),
+					g.Dummy(0, 14),
+					insetStyle("welcome-steps", -1, 88,
+						g.Row(
+							textLabel("1", 24, uiPrimary),
+							g.Layout{g.Label("选择游戏目录"), mutedLabel("定位 Koikatu_Data")},
+							g.Spacing(),
+							textLabel("2", 24, uiPrimary),
+							g.Layout{g.Label("构建 MOD 信息"), mutedLabel("扫描本地 Zipmod")},
+							g.Spacing(),
+							textLabel("3", 24, uiPrimary),
+							g.Layout{g.Label("开始检测"), mutedLabel("核对卡片依赖")},
+						),
+					),
+					g.Dummy(0, 10),
+					sectionLabel("设置游戏目录"),
+					mutedLabel("请选择 Koikatsu / Koikatsu Sunshine 安装目录，或直接选择 Koikatu_Data"),
+					g.Dummy(0, 4),
+					util.FilePicker("游戏目录", &config.Instance.GamePath).ForDirectories().LabelWidth(110).ButtonWidth(140),
+					welcomeWarning(),
+					g.Dummy(0, 12),
+					g.Align(g.AlignCenter).To(
+						primaryButton("保存并继续", 220, 52, func() {
+							config.Instance.InitConfig = true
+							config.Save()
+							g.Update()
+						}),
+					),
+					g.Dummy(0, 10),
+					g.Align(g.AlignCenter).To(g.Row(
+						secondaryButton("BUG 反馈", 120, 34, func() {
+							util.OpenURL("https://github.com/GenesisAN/KKCardModCheck/issues")
+						}),
+						secondaryButton("讨论区", 100, 34, func() {
+							util.OpenURL("https://github.com/GenesisAN/KKCardModCheck/discussions")
+						}),
+						secondaryButton("QQ群", 90, 34, func() {
+							util.OpenURL("https://qm.qq.com/q/rza05u1550")
+						}),
+					)),
+				),
+			).Build()
+		}),
 	}
+}
+
+func welcomeWarning() g.Widget {
+	if config.Instance.GamePath == "" {
+		return mutedLabel("选择目录后将进入 MOD 信息构建步骤")
+	}
+	if isKoikatsuGameDirectory(config.Instance.GamePath) {
+		return textLabel("目录识别成功", 15, uiSuccess)
+	}
+	return textLabel("未发现 Koikatu_Data；仍可把当前路径作为 MOD 存放目录使用", 15, uiWarning)
+}
+
+func isKoikatsuGameDirectory(path string) bool {
+	if filepath.Base(path) == "Koikatu_Data" {
+		return true
+	}
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		if entry.IsDir() && entry.Name() == "Koikatu_Data" {
+			return true
+		}
+	}
+	return false
 }
