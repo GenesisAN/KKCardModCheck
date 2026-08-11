@@ -172,7 +172,7 @@ func classicInputPanel(width float32) g.Widget {
 	return g.Child().ID(g.ID("classic-input-panel")).Size(width, 245).Border(true).Flags(g.WindowFlagsNoScrollbar).Layout(
 		g.Label("输入"),
 		g.Separator(),
-		g.Label("角色卡文件或目录"),
+		g.Label("角色卡、KK 场景卡或目录"),
 		g.InputText(&config.Instance.CardPath).Size(-1).Flags(g.InputTextFlagsReadOnly),
 		g.Row(
 			g.Button("选择 PNG 文件").OnClick(chooseCardFile),
@@ -180,8 +180,9 @@ func classicInputPanel(width float32) g.Widget {
 		),
 		g.Dummy(0, 8),
 		g.Label("说明"),
-		g.BulletText("可将 PNG 角色卡或目录直接拖入窗口"),
+		g.BulletText("可将 PNG 角色卡、KK 场景卡或目录直接拖入窗口"),
 		g.BulletText("目录模式会递归扫描所有 PNG 文件"),
+		g.BulletText("场景卡结果会综合场景本体与全部内嵌角色依赖"),
 		g.BulletText("检测依赖前需要先构建本地 MOD 数据库"),
 	)
 }
@@ -195,7 +196,7 @@ func classicPreviewPanel(width float32) g.Widget {
 				g.ImageWithFile(path).Size(100, 142),
 				g.Layout{
 					g.Label(filepath.Base(path)),
-					g.Label("PNG 角色卡"),
+					g.Label("PNG 角色卡 / KK 场景卡"),
 					g.Label("状态：已载入"),
 				},
 			),
@@ -222,13 +223,13 @@ func classicResultsPanel() g.Widget {
 		g.Row(
 			g.Label(fmt.Sprintf("解析卡片: %d", parsedCardCount())),
 			g.Separator(),
-			g.Style().SetColor(g.StyleColorText, uiDanger).To(g.Label(fmt.Sprintf("缺失 MOD: %d", len(missingMods)))),
+			g.Style().SetColor(g.StyleColorText, uiDanger).To(g.Label(fmt.Sprintf("综合缺失 MOD: %d", len(missingMods)))),
 			g.Separator(),
-			g.Style().SetColor(g.StyleColorText, uiSuccess).To(g.Label(fmt.Sprintf("使用 MOD: %d", len(usedMods)))),
+			g.Style().SetColor(g.StyleColorText, uiSuccess).To(g.Label(fmt.Sprintf("综合使用 MOD: %d", len(usedMods)))),
 		),
 		g.TabBar().TabItems(
-			g.TabItem(fmt.Sprintf("缺失的 MOD (%d)", len(missingMods))).Layout(classicResultTable(true)),
-			g.TabItem(fmt.Sprintf("使用的 MOD (%d)", len(usedMods))).Layout(classicResultTable(false)),
+			g.TabItem(fmt.Sprintf("综合缺失的 MOD (%d)", len(missingMods))).Layout(classicResultTable(true)),
+			g.TabItem(fmt.Sprintf("综合使用的 MOD (%d)", len(usedMods))).Layout(classicResultTable(false)),
 		),
 	)
 }

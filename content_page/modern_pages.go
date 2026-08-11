@@ -53,6 +53,8 @@ func SceneCardToolsPage() g.Layout {
 		widgets = append(widgets,
 			g.TabBar().TabItems(
 				sceneTextTab(" 场景概要 ", &sceneSummaryText),
+				sceneTextTab(" 综合缺失 Mod ", &sceneMissingModsText),
+				sceneTextTab(" 综合使用 Mod ", &sceneUsedModsText),
 				sceneTextTab(" 场景插件 / Mod ", &scenePluginsText),
 				sceneTextTab(" 内嵌角色 / Mod ", &sceneCharactersText),
 				sceneTextTab(" 拆分日志 ", &sceneExportLog),

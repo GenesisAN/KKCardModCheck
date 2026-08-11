@@ -80,6 +80,8 @@ func ClassicSceneCardToolsPageSafe() g.Layout {
 		widgets = append(widgets,
 			g.TabBar().TabItems(
 				sceneTextTab("场景概要", &sceneSummaryText),
+				sceneTextTab("综合缺失 MOD", &sceneMissingModsText),
+				sceneTextTab("综合使用 MOD", &sceneUsedModsText),
 				sceneTextTab("场景插件 / MOD", &scenePluginsText),
 				sceneTextTab("内嵌角色 / MOD", &sceneCharactersText),
 				sceneTextTab("拆分日志", &sceneExportLog),

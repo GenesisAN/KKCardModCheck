@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -15,6 +14,7 @@ import (
 	g "github.com/AllenDang/giu"
 	ic "github.com/GenesisAN/illusionsCard"
 	"github.com/GenesisAN/illusionsCard/Base"
+	"github.com/GenesisAN/illusionsCard/KK"
 )
 
 var tips = ""
@@ -27,6 +27,7 @@ var lastCardPath string // 记录上一次选择的卡片路径，路径变化�
 var isChecking bool
 var cancelRequested atomic.Bool
 var progressParsed int
+var progressScenes int
 var progressErrors int
 var checkMu sync.Mutex
 
@@ -39,6 +40,7 @@ func resetCheckStateLocked() {
 	checked = false
 	isChecking = false
 	progressParsed = 0
+	progressScenes = 0
 	progressErrors = 0
 	cancelRequested.Store(false)
 }
@@ -71,7 +73,7 @@ func CardModVerification() *g.TabItemWidget {
 	localProgressErrors := progressErrors
 	checkMu.Unlock()
 	layout := []g.Widget{
-		g.Label(" 选择你要检查的卡片/卡片目录 "),
+		g.Label(" 选择你要检查的角色卡、场景卡或卡片目录 "),
 		g.Separator(),
 		util.FilePicker("卡片文件/目录", &config.Instance.CardPath).WithDualMode().Filters("*.png"),
 		g.Separator(),
@@ -215,6 +217,7 @@ func SingleCardCheck() {
 	isChecking = true
 	checked = false
 	progressParsed = 0
+	progressScenes = 0
 	progressErrors = 0
 	cancelRequested.Store(false)
 	tips = "开始解析..."
@@ -242,10 +245,9 @@ func SingleCardCheck() {
 		}
 
 		ext := filepath.Ext(config.Instance.CardPath)
-		missing := make(map[string]Base.ResolveInfo)
-		usedSet := make(map[string]struct{})
-		usedList := make([]string, 0, 128)
+		modSummary := newCardModSummary(localGUIDs)
 		parsedCount := 0
+		sceneCount := 0
 		errorCount := 0
 		foundCount := 0
 		updateEvery := 20
@@ -256,8 +258,9 @@ func SingleCardCheck() {
 			}
 			checkMu.Lock()
 			progressParsed = parsedCount
+			progressScenes = sceneCount
 			progressErrors = errorCount
-			tips = fmt.Sprintf("正在解析...已处理 %d 张", parsedCount)
+			tips = fmt.Sprintf("正在解析...已处理 %d 张（场景卡 %d 张）", parsedCount, sceneCount)
 			checkMu.Unlock()
 			g.Update()
 		}
@@ -267,26 +270,14 @@ func SingleCardCheck() {
 				return
 			}
 			parsedCount++
-			for _, guid := range card.GetZipmodsDependencies() {
-				if guid == "" {
-					continue
-				}
-				if _, ok := usedSet[guid]; !ok {
-					usedSet[guid] = struct{}{}
-					usedList = append(usedList, guid)
-				}
+			if _, ok := card.(*KK.KKSceneCard); ok {
+				sceneCount++
 			}
-			if comparer, ok := card.(interface {
-				CompareMissingMods([]string) map[string]Base.ResolveInfo
-			}); ok {
-				for guid, info := range comparer.CompareMissingMods(localGUIDs) {
-					missing[guid] = info
-				}
-			}
+			modSummary.addCard(card)
 			updateProgress(false)
 		}
 
-		if ext == ".png" {
+		if strings.EqualFold(ext, ".png") {
 			card, err := ic.ReadCardFromPath(config.Instance.CardPath)
 			if err != nil {
 				checkMu.Lock()
@@ -319,7 +310,7 @@ func SingleCardCheck() {
 				if info == nil || info.IsDir() {
 					return nil
 				}
-				if filepath.Ext(path) != ".png" {
+				if !strings.EqualFold(filepath.Ext(path), ".png") {
 					return nil
 				}
 				foundCount++
@@ -381,16 +372,7 @@ func SingleCardCheck() {
 			return
 		}
 
-		var missingLines []string
-		for guid, mod := range missing {
-			if guid == "" {
-				missingLines = append(missingLines, fmt.Sprintf("%s (GUID未知)", mod.Property))
-			} else {
-				missingLines = append(missingLines, guid)
-			}
-		}
-		sort.Strings(missingLines)
-		sort.Strings(usedList)
+		missingLines, usedList := modSummary.lists()
 
 		checkMu.Lock()
 		missingMods = missingLines
@@ -398,13 +380,14 @@ func SingleCardCheck() {
 		usedMods = usedList
 		usedModsText = strings.Join(usedList, "\n")
 		if len(missingLines) > 0 {
-			tips = fmt.Sprintf("检索完成，共解析 %d 张卡片，缺失 %d 个 MOD", parsedCount, len(missingLines))
+			tips = fmt.Sprintf("检索完成，共解析 %d 张卡片（场景卡 %d 张），综合缺失 %d 个 MOD", parsedCount, sceneCount, len(missingLines))
 		} else {
-			tips = fmt.Sprintf("检索完成，共解析 %d 张卡片，没有缺失的MOD！", parsedCount)
+			tips = fmt.Sprintf("检索完成，共解析 %d 张卡片（场景卡 %d 张），没有缺失的 MOD！", parsedCount, sceneCount)
 		}
 		checked = true
 		isChecking = false
 		progressParsed = parsedCount
+		progressScenes = sceneCount
 		progressErrors = errorCount
 		checkMu.Unlock()
 		g.Update()

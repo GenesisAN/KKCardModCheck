@@ -51,11 +51,11 @@ func syncCardSelection() {
 
 func cardImportPanel(width float32) g.Widget {
 	return fixedPanelStyle("card-import-panel", width, 326,
-		sectionLabel("选择卡片"),
+		sectionLabel("选择角色卡 / 场景卡"),
 		insetStyle("card-drop-zone", -1, 184,
 			g.Align(g.AlignCenter).To(textLabel("PNG", 24, uiMuted)),
-			g.Align(g.AlignCenter).To(sectionLabel("拖入角色卡或文件夹")),
-			g.Align(g.AlignCenter).To(mutedLabel("支持 PNG 角色卡，也可批量检测目录")),
+			g.Align(g.AlignCenter).To(sectionLabel("拖入角色卡、场景卡或文件夹")),
+			g.Align(g.AlignCenter).To(mutedLabel("支持 PNG 角色卡与 KK 场景卡，可批量检测目录")),
 			g.Align(g.AlignCenter).To(g.Row(
 				primaryButton("选择文件", 130, 40, chooseCardFile),
 				secondaryButton("选择文件夹", 130, 40, chooseCardDirectory),
@@ -67,7 +67,7 @@ func cardImportPanel(width float32) g.Widget {
 }
 
 func chooseCardFile() {
-	selected, err := util.BrowseFile("选择角色卡", config.Instance.CardPath, "*.png")
+	selected, err := util.BrowseFile("选择角色卡或 KK 场景卡", config.Instance.CardPath, "*.png")
 	if err == nil && selected != "" {
 		config.Instance.CardPath = selected
 		g.Update()
@@ -93,7 +93,7 @@ func cardPreviewPanel(width float32) g.Widget {
 				g.Layout{
 					g.Dummy(0, 18),
 					textLabel(filepath.Base(path), 18, uiText),
-					mutedLabel("PNG 角色卡"),
+					mutedLabel("PNG 角色卡 / KK 场景卡"),
 					statusLabel("已识别", uiSuccess),
 				},
 			),
@@ -155,8 +155,8 @@ func resultStats() g.Widget {
 		cardWidth := (availableWidth - gap*2) / 3
 		g.Row(
 			statCard("解析卡片", parsedCardCount(), uiPrimary, cardWidth),
-			statCard("缺失 MOD", len(missingMods), uiDanger, cardWidth),
-			statCard("使用 MOD", len(usedMods), uiSuccess, cardWidth),
+			statCard("综合缺失 MOD", len(missingMods), uiDanger, cardWidth),
+			statCard("综合使用 MOD", len(usedMods), uiSuccess, cardWidth),
 		).Build()
 	})
 }
@@ -190,8 +190,8 @@ func parsedCardCount() int {
 
 func resultToolbar() g.Widget {
 	return g.Row(
-		resultTabButton(fmt.Sprintf("缺失的 MOD  %d", len(missingMods)), true),
-		resultTabButton(fmt.Sprintf("使用的 MOD  %d", len(usedMods)), false),
+		resultTabButton(fmt.Sprintf("综合缺失 MOD  %d", len(missingMods)), true),
+		resultTabButton(fmt.Sprintf("综合使用 MOD  %d", len(usedMods)), false),
 		g.Spacing(),
 		secondaryButton("复制列表", 110, 36, copyCurrentResult),
 		secondaryButton("清除结果", 110, 36, clearCardResults),

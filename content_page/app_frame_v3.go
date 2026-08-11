@@ -117,7 +117,7 @@ func activePageLayoutV3() g.Layout {
 	if activePage != pageCardCheck {
 		return activePageLayoutV2()
 	}
-	return pageShellV3("卡片 MOD 缺失检测", "选择角色卡或卡片目录，快速检查缺失依赖", CardModVerificationPageV3())
+	return pageShellV3("卡片 MOD 缺失检测", "支持角色卡与 KK 场景卡，并综合检查场景及内嵌角色依赖", CardModVerificationPageV3())
 }
 
 func pageShellV3(title, subtitle string, body g.Layout) g.Layout {

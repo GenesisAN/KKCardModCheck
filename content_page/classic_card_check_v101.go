@@ -20,6 +20,7 @@ type classicCheckSnapshotV101 struct {
 	checked        bool
 	checking       bool
 	progressParsed int
+	progressScenes int
 	progressErrors int
 }
 
@@ -35,6 +36,7 @@ func takeClassicCheckSnapshotV101() classicCheckSnapshotV101 {
 		checked:        checked,
 		checking:       isChecking,
 		progressParsed: progressParsed,
+		progressScenes: progressScenes,
 		progressErrors: progressErrors,
 	}
 }
@@ -80,7 +82,7 @@ func classicPreviewPanelV101(width float32, snapshot classicCheckSnapshotV101) g
 		layout = append(layout,
 			g.Row(
 				g.ImageWithFile(path).Size(100, 142),
-				g.Layout{g.Label(filepath.Base(path)), g.Label("PNG 角色卡"), g.Label("状态：已载入")},
+				g.Layout{g.Label(filepath.Base(path)), g.Label("PNG 角色卡 / KK 场景卡"), g.Label("状态：已载入")},
 			),
 		)
 	} else if path != "" {
@@ -103,7 +105,7 @@ func classicPreviewPanelV101(width float32, snapshot classicCheckSnapshotV101) g
 func classicResultsPanelV101(snapshot classicCheckSnapshotV101) g.Widget {
 	status := "状态：等待检测"
 	if snapshot.checking {
-		status = fmt.Sprintf("状态：正在检测，已解析 %d，错误 %d", snapshot.progressParsed, snapshot.progressErrors)
+		status = fmt.Sprintf("状态：正在检测，已解析 %d（场景卡 %d），错误 %d", snapshot.progressParsed, snapshot.progressScenes, snapshot.progressErrors)
 	} else if snapshot.checked {
 		status = "状态：检测完成"
 	} else if snapshot.tips != "" {
@@ -121,18 +123,18 @@ func classicResultsPanelV101(snapshot classicCheckSnapshotV101) g.Widget {
 		g.Row(
 			g.Label(fmt.Sprintf("解析卡片: %d", snapshot.progressParsed)),
 			g.Separator(),
-			g.Style().SetColor(g.StyleColorText, uiDanger).To(g.Label(fmt.Sprintf("缺失 MOD: %d", len(snapshot.missing)))),
+			g.Style().SetColor(g.StyleColorText, uiDanger).To(g.Label(fmt.Sprintf("综合缺失 MOD: %d", len(snapshot.missing)))),
 			g.Separator(),
-			g.Style().SetColor(g.StyleColorText, uiSuccess).To(g.Label(fmt.Sprintf("使用 MOD: %d", len(snapshot.used)))),
+			g.Style().SetColor(g.StyleColorText, uiSuccess).To(g.Label(fmt.Sprintf("综合使用 MOD: %d", len(snapshot.used)))),
 		),
 		g.TabBar().TabItems(
-			g.TabItem(fmt.Sprintf("缺失的 MOD (%d)", len(snapshot.missing))).Layout(
+			g.TabItem(fmt.Sprintf("综合缺失的 MOD (%d)", len(snapshot.missing))).Layout(
 				g.Row(g.Style().SetDisabled(snapshot.missingText == "").To(g.Button("复制列表").OnClick(func() {
 					copyClassicCheckTextV101(snapshot.missingText)
 				}))),
 				classicResultTableV101(snapshot.missing, "缺失", snapshot.checked),
 			),
-			g.TabItem(fmt.Sprintf("使用的 MOD (%d)", len(snapshot.used))).Layout(
+			g.TabItem(fmt.Sprintf("综合使用的 MOD (%d)", len(snapshot.used))).Layout(
 				g.Row(g.Style().SetDisabled(snapshot.usedText == "").To(g.Button("复制列表").OnClick(func() {
 					copyClassicCheckTextV101(snapshot.usedText)
 				}))),

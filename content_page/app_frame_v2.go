@@ -105,7 +105,7 @@ func activePageLayoutV2() g.Layout {
 	case pageSettings:
 		return settingsPage()
 	default:
-		return pageShellV2("卡片 MOD 缺失检测", "选择角色卡或卡片目录，快速检查缺失依赖", CardModVerificationPage())
+		return pageShellV2("卡片 MOD 缺失检测", "支持角色卡与 KK 场景卡，并综合检查场景及内嵌角色依赖", CardModVerificationPage())
 	}
 }
 

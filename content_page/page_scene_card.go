@@ -16,16 +16,18 @@ import (
 )
 
 var (
-	sceneCardPath       string
-	sceneOutputDir      string
-	sceneUniqueOnly     = true
-	sceneStatus         string
-	sceneSummaryText    string
-	scenePluginsText    string
-	sceneCharactersText string
-	sceneExportLog      string
-	parsedScene         *KK.KKSceneCard
-	parsedScenePath     string
+	sceneCardPath        string
+	sceneOutputDir       string
+	sceneUniqueOnly      = true
+	sceneStatus          string
+	sceneSummaryText     string
+	scenePluginsText     string
+	sceneCharactersText  string
+	sceneMissingModsText string
+	sceneUsedModsText    string
+	sceneExportLog       string
+	parsedScene          *KK.KKSceneCard
+	parsedScenePath      string
 )
 
 // SceneCardToolsTab displays KK Studio scene dependencies and extracts the
@@ -74,6 +76,8 @@ func SceneCardToolsTab() *g.TabItemWidget {
 		layout = append(layout,
 			g.TabBar().TabItems(
 				sceneTextTab(" 场景概要 ", &sceneSummaryText),
+				sceneTextTab(" 综合缺失 Mod ", &sceneMissingModsText),
+				sceneTextTab(" 综合使用 Mod ", &sceneUsedModsText),
 				sceneTextTab(" 场景插件 / Mod ", &scenePluginsText),
 				sceneTextTab(" 内嵌角色 / Mod ", &sceneCharactersText),
 				sceneTextTab(" 拆分日志 ", &sceneExportLog),
@@ -120,9 +124,33 @@ func parseSelectedScene() {
 		sceneOutputDir = filepath.Join(filepath.Dir(path), base+"_characters")
 	}
 	buildSceneTexts(scene)
-	sceneStatus = fmt.Sprintf("解析完成：场景插件 %d 项，角色实例 %d 个，去重后 %d 个",
-		len(scene.SceneExtendedList), len(scene.CharaCards), len(scene.UniqueCharaCardIndexes()))
+	missingCount, usedCount, modErr := buildSceneModTexts(scene)
+	sceneStatus = fmt.Sprintf("解析完成：场景插件 %d 项，角色实例 %d 个，去重后 %d 个；综合使用 MOD %d 个",
+		len(scene.SceneExtendedList), len(scene.CharaCards), len(scene.UniqueCharaCardIndexes()), usedCount)
+	if modErr != nil {
+		sceneStatus += fmt.Sprintf("；缺失 MOD 核对失败：%v", modErr)
+	} else {
+		sceneStatus += fmt.Sprintf("，综合缺失 %d 个", missingCount)
+	}
 	g.Update()
+}
+
+func buildSceneModTexts(scene Base.CardInterface) (missingCount, usedCount int, err error) {
+	_, used := summarizeCardMods([]Base.CardInterface{scene}, nil)
+	usedCount = len(used)
+	sceneUsedModsText = fmt.Sprintf("综合使用 MOD（场景本体 + 全部内嵌角色，共 %d 项；包含缺失项）：\n%s",
+		usedCount, formatStringList(used))
+
+	localGUIDs, err := util.LoadModGUIDsFromJSON(config.Instance.ModInfoPath)
+	if err != nil {
+		sceneMissingModsText = fmt.Sprintf("无法读取本地 MOD 数据库，暂时不能核对缺失项：\n%v", err)
+		return 0, usedCount, err
+	}
+	missing, _ := summarizeCardMods([]Base.CardInterface{scene}, localGUIDs)
+	missingCount = len(missing)
+	sceneMissingModsText = fmt.Sprintf("综合缺失 MOD（场景本体 + 全部内嵌角色，共 %d 项）：\n%s",
+		missingCount, formatStringList(missing))
+	return missingCount, usedCount, nil
 }
 
 func extractSelectedSceneCharacters() {
@@ -344,5 +372,7 @@ func resetSceneResult() {
 	sceneSummaryText = ""
 	scenePluginsText = ""
 	sceneCharactersText = ""
+	sceneMissingModsText = ""
+	sceneUsedModsText = ""
 	sceneStatus = ""
 }

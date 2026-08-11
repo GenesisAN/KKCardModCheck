@@ -26,11 +26,11 @@ func CardModVerificationPageV3() g.Layout {
 
 func cardImportPanelV3(width float32) g.Widget {
 	return fixedPanelStyle("card-import-panel-v3", width, 396,
-		boldTextV3("选择卡片", 20, uiText),
+		boldTextV3("选择角色卡 / 场景卡", 20, uiText),
 		dropZoneV3("drop-zone-v3", 246,
 			g.Align(g.AlignCenter).To(iconV3("drop-image-v3", "image", 66, uiMuted)),
-			g.Align(g.AlignCenter).To(boldTextV3("拖入角色卡或文件夹", 22, uiText)),
-			g.Align(g.AlignCenter).To(textLabel("支持 PNG 角色卡，也可批量检测目录", 17, uiMuted)),
+			g.Align(g.AlignCenter).To(boldTextV3("拖入角色卡、场景卡或文件夹", 22, uiText)),
+			g.Align(g.AlignCenter).To(textLabel("支持 PNG 角色卡与 KK 场景卡，可批量检测目录", 17, uiMuted)),
 			g.Align(g.AlignCenter).To(g.Row(
 				primaryButton("选择文件", 160, 46, chooseCardFile),
 				secondaryButton("选择文件夹", 160, 46, chooseCardDirectory),
@@ -50,7 +50,7 @@ func cardPreviewPanelV3(width float32) g.Widget {
 			g.Layout{
 				g.Dummy(0, 30),
 				boldTextV3(filepath.Base(path), 18, uiText),
-				textLabel("PNG 角色卡", 17, uiMuted),
+				textLabel("PNG 角色卡 / KK 场景卡", 17, uiMuted),
 				statusLabel("已识别", uiSuccess),
 			},
 		)
@@ -98,8 +98,8 @@ func resultStatsV3() g.Widget {
 		cw := (w - gap*2) / 3
 		g.Row(
 			statCardV3("document", "解析卡片", parsedCardCount(), uiPrimary, cw),
-			statCardV3("warning", "缺失 MOD", len(missingMods), uiDanger, cw),
-			statCardV3("cube", "使用 MOD", len(usedMods), uiSuccess, cw),
+			statCardV3("warning", "综合缺失 MOD", len(missingMods), uiDanger, cw),
+			statCardV3("cube", "综合使用 MOD", len(usedMods), uiSuccess, cw),
 		).Build()
 	})
 }
