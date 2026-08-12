@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/GenesisAN/illusionsCard/Base"
+	"github.com/GenesisAN/illusionsCard/KK"
 )
 
 // summarizeCardMods returns the union of every referenced Zipmod and the
@@ -44,7 +45,11 @@ func (summary *cardModSummary) addCard(card Base.CardInterface) {
 	if card == nil {
 		return
 	}
-	for _, guid := range card.GetZipmodsDependencies() {
+	dependencies := card.GetZipmodsDependencies()
+	if scene, ok := card.(*KK.KKSceneCard); ok {
+		dependencies = append(dependencies, sceneItemZipmodDependencies(scene)...)
+	}
+	for _, guid := range dependencies {
 		guid = strings.TrimSpace(guid)
 		if guid == "" {
 			continue
@@ -54,6 +59,43 @@ func (summary *cardModSummary) addCard(card Base.CardInterface) {
 			summary.missing[guid] = struct{}{}
 		}
 	}
+}
+
+func sceneItemZipmodDependencies(scene *KK.KKSceneCard) []string {
+	if scene == nil || scene.SceneExtended == nil {
+		return nil
+	}
+	plugin := scene.SceneExtended[Base.UARExtID]
+	if plugin == nil {
+		plugin = scene.SceneExtended[Base.UARExtIDOld]
+	}
+	if plugin == nil {
+		return nil
+	}
+	data, ok := plugin.Data.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	entries, ok := data["itemInfo"].([]interface{})
+	if !ok {
+		return nil
+	}
+	dependencies := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		encoded, ok := entry.([]byte)
+		if !ok {
+			continue
+		}
+		var resolve Base.ResolveInfo
+		if rest, err := resolve.UnmarshalMsg(encoded); err != nil || len(rest) != 0 {
+			continue
+		}
+		if guid := strings.TrimSpace(resolve.GUID); guid != "" {
+			dependencies = append(dependencies, guid)
+		}
+	}
+	return dependencies
 }
 
 func (summary *cardModSummary) lists() (missing, used []string) {

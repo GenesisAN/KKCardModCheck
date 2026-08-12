@@ -217,8 +217,11 @@ func sceneExtractionIndexes(scene *KK.KKSceneCard, unique bool) []int {
 }
 
 func buildSceneTexts(scene *KK.KKSceneCard) {
-	sceneZipmods := collectScenePluginZipmods(scene.SceneExtendedList)
-	allZipmods := dedupeSorted(scene.GetZipmodsDependencies())
+	sceneZipmods := dedupeSorted(append(
+		collectScenePluginZipmods(scene.SceneExtendedList),
+		sceneItemZipmodDependencies(scene)...,
+	))
+	allZipmods := dedupeSorted(append(scene.GetZipmodsDependencies(), sceneItemZipmodDependencies(scene)...))
 	uniqueIndexes := scene.UniqueCharaCardIndexes()
 
 	var summary strings.Builder
