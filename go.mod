@@ -19,7 +19,7 @@ require (
 require (
 	github.com/AllenDang/cimgui-go v1.3.2-0.20250409185506-6b2ff1aa26b5 // indirect
 	github.com/AllenDang/go-findfont v0.0.0-20200702051237-9f180485aeb8 // indirect
-	github.com/GenesisAN/illusionsCard v1.0.1
+	github.com/GenesisAN/illusionsCard v1.0.2
 	github.com/TheTitanrain/w32 v0.0.0-20180517000239-4f5cfb03fabf // indirect
 	github.com/dgryski/go-farm v0.0.0-20240924180020-3414d57e47da
 	github.com/faiface/mainthread v0.0.0-20171120011319-8b78f0a41ae3 // indirect
