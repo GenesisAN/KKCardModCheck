@@ -57,10 +57,12 @@ func classicTheme(widgets ...g.Widget) g.Widget {
 		SetColor(g.StyleColorTableBorderLight, color.RGBA{R: 59, G: 59, B: 64, A: 255}).
 		SetColor(g.StyleColorTableRowBg, uiTransparent).
 		SetColor(g.StyleColorTableRowBgAlt, color.RGBA{R: 255, G: 255, B: 255, A: 15}).
-		SetStyle(g.StyleVarWindowPadding, 8, 8).
-		SetStyle(g.StyleVarFramePadding, 6, 4).
-		SetStyle(g.StyleVarItemSpacing, 8, 6).
+		SetStyle(g.StyleVarWindowPadding, 12, 12).
+		SetStyle(g.StyleVarFramePadding, 8, 5).
+		SetStyle(g.StyleVarItemSpacing, 8, 8).
 		SetStyle(g.StyleVarItemInnerSpacing, 6, 4).
+		SetStyleFloat(g.StyleVarFrameBorderSize, 0).
+		SetStyleFloat(g.StyleVarChildBorderSize, 1).
 		SetStyleFloat(g.StyleVarWindowRounding, 0).
 		SetStyleFloat(g.StyleVarChildRounding, 0).
 		SetStyleFloat(g.StyleVarFrameRounding, 0).
@@ -117,10 +119,13 @@ func classicSidebar() g.Widget {
 }
 
 func classicNav(label string, page appPage) g.Widget {
-	selected := activePage == page
-	return g.Selectable(label+"##classic-nav-"+strconv.Itoa(int(page))).Selected(selected).Size(187, 34).OnClick(func() {
-		activePage = page
-		g.Update()
+	return g.Custom(func() {
+		width, _ := g.GetAvailableRegion()
+		g.Selectable(label+"##classic-nav-"+strconv.Itoa(int(page))).
+			Selected(activePage == page).Size(width, 36).OnClick(func() {
+			activePage = page
+			g.Update()
+		}).Build()
 	})
 }
 
@@ -146,7 +151,7 @@ func classicPageShell(title string, body g.Layout) g.Layout {
 		g.Row(
 			textLabel(title, 24, classicText),
 			g.Spacing(),
-			g.Button("使用说明").OnClick(func() {
+			classicButton("使用说明").OnClick(func() {
 				util.OpenURL("https://github.com/GenesisAN/KKCardModCheck#使用说明")
 			}),
 		),
@@ -169,16 +174,16 @@ func ClassicCardCheckPage() g.Layout {
 }
 
 func classicInputPanel(width float32) g.Widget {
-	return g.Child().ID(g.ID("classic-input-panel")).Size(width, 245).Border(true).Flags(g.WindowFlagsNoScrollbar).Layout(
+	return g.Child().ID(g.ID("classic-input-panel")).Size(width, 280).Border(true).Flags(g.WindowFlagsNoScrollbar).Layout(
 		g.Label("输入"),
-		g.Separator(),
+		g.Dummy(0, 2),
 		g.Label("角色卡、KK 场景卡或目录"),
 		g.InputText(&config.Instance.CardPath).Size(-1).Flags(g.InputTextFlagsReadOnly),
 		g.Row(
-			g.Button("选择 PNG 文件").OnClick(chooseCardFile),
-			g.Button("选择目录").OnClick(chooseCardDirectory),
+			classicButton("选择 PNG 文件").OnClick(chooseCardFile),
+			classicButton("选择目录").OnClick(chooseCardDirectory),
 		),
-		g.Dummy(0, 8),
+		g.Dummy(0, 2),
 		g.Label("说明"),
 		g.BulletText("可将 PNG 角色卡、KK 场景卡或目录直接拖入窗口"),
 		g.BulletText("目录模式会递归扫描所有 PNG 文件"),
@@ -206,8 +211,8 @@ func classicPreviewPanel(width float32) g.Widget {
 	} else {
 		layout = append(layout, g.Label("尚未选择卡片或目录"), g.Dummy(0, 94))
 	}
-	layout = append(layout, g.Style().SetDisabled(path == "").To(g.Button("开始检测").Size(-1, 34).OnClick(SingleCardCheck)))
-	return g.Child().ID(g.ID("classic-preview-panel")).Size(width, 245).Border(true).Flags(g.WindowFlagsNoScrollbar).Layout(layout...)
+	layout = append(layout, g.Style().SetDisabled(path == "").To(classicButton("开始检测").Size(-1, classicButtonHeight).OnClick(SingleCardCheck)))
+	return g.Child().ID(g.ID("classic-preview-panel")).Size(width, 280).Border(true).Flags(g.WindowFlagsNoScrollbar).Layout(layout...)
 }
 
 func classicResultsPanel() g.Widget {
@@ -217,8 +222,8 @@ func classicResultsPanel() g.Widget {
 			g.Separator(),
 			g.Label(classicStatusText()),
 			g.Spacing(),
-			g.Button("复制当前列表").OnClick(copyCurrentResult),
-			g.Button("清除").OnClick(clearCardResults),
+			classicButton("复制当前列表").OnClick(copyCurrentResult),
+			classicButton("清除").OnClick(clearCardResults),
 		),
 		g.Row(
 			g.Label(fmt.Sprintf("解析卡片: %d", parsedCardCount())),
@@ -266,7 +271,7 @@ func classicResultTable(showMissing bool) g.Widget {
 			rows = append(rows, g.TableRow(
 				g.Label(value),
 				g.Label(status),
-				g.Button("复制##classic-copy-"+strconv.Itoa(i)).OnClick(func() { _ = util.CopyToClipboard(value) }),
+				classicButton("复制##classic-copy-"+strconv.Itoa(i)).Size(classicInlineButtonWidth, classicInlineButtonHeight).OnClick(func() { _ = util.CopyToClipboard(value) }),
 			).MinHeight(30))
 		}
 	}

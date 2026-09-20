@@ -22,18 +22,18 @@ func SceneCardToolsPage() g.Layout {
 		sectionLabel("选择场景卡"),
 		mutedLabel("支持 KK 工作室 PNG 场景卡，可查看插件、Zipmod 与内嵌角色"),
 		g.Dummy(0, 4),
-		util.FilePicker("场景卡文件", &sceneCardPath).ForFiles().Filters("*.png").LabelWidth(120).ButtonWidth(130),
-		util.FilePicker("角色输出目录", &sceneOutputDir).ForDirectories().LabelWidth(120).ButtonWidth(130),
+		util.FilePicker("场景卡文件", &sceneCardPath).ForFiles().Filters("*.png").LabelWidth(120).ButtonWidth(144),
+		util.FilePicker("角色输出目录", &sceneOutputDir).ForDirectories().LabelWidth(120).ButtonWidth(144),
 		g.Checkbox("按角色去重（推荐；取消后导出全部 Studio 角色实例）", &sceneUniqueOnly),
 		g.Row(
-			primaryButton("解析场景卡", 150, 44, parseSelectedScene),
-			secondaryButton("拆分角色卡", 150, 44, extractSelectedSceneCharacters),
-			secondaryButton("打开输出目录", 150, 44, func() {
+			primaryButton("解析场景卡", classicButtonWidth, classicButtonHeight, parseSelectedScene),
+			secondaryButton("拆分角色卡", classicButtonWidth, classicButtonHeight, extractSelectedSceneCharacters),
+			secondaryButton("打开输出目录", classicButtonWidth, classicButtonHeight, func() {
 				if sceneOutputDir != "" {
 					util.OpenFile(sceneOutputDir)
 				}
 			}),
-			secondaryButton("清除结果", 120, 44, func() {
+			secondaryButton("清除结果", classicButtonWidth, classicButtonHeight, func() {
 				resetSceneResult()
 				sceneExportLog = ""
 				g.Update()
@@ -84,8 +84,8 @@ func ModeMatchPage() g.Layout {
 		sectionLabel("选择 MOD 与角色卡"),
 		mutedLabel("可拖入文件到窗口，或使用右侧按钮选择文件"),
 		g.Dummy(0, 4),
-		util.FilePicker("MOD 文件", &mmModPath).ForFiles().Filters("*.zipmod").LabelWidth(120).ButtonWidth(130),
-		util.FilePicker("卡片文件", &mmCardPath).ForFiles().Filters("*.png").LabelWidth(120).ButtonWidth(130),
+		util.FilePicker("MOD 文件", &mmModPath).ForFiles().Filters("*.zipmod").LabelWidth(120).ButtonWidth(144),
+		util.FilePicker("卡片文件", &mmCardPath).ForFiles().Filters("*.png").LabelWidth(120).ButtonWidth(144),
 		g.Row(
 			primaryButton(func() string {
 				if mmInProgress {
@@ -97,7 +97,7 @@ func ModeMatchPage() g.Layout {
 					startModMatch()
 				}
 			}),
-			secondaryButton("清除", 110, 48, func() {
+			secondaryButton("清除", classicButtonWidth, classicButtonHeight, func() {
 				mmModPath = ""
 				mmCardPath = ""
 				mmStatus = ""
@@ -129,7 +129,7 @@ func ModeCardUsePage() g.Layout {
 		sectionLabel("生成角色卡借物表"),
 		mutedLabel("读取角色卡依赖并生成 card_use_mod.txt"),
 		g.Dummy(0, 4),
-		util.FilePicker("卡片文件", &cuCardPath).ForFiles().Filters("*.png").LabelWidth(120).ButtonWidth(130),
+		util.FilePicker("卡片文件", &cuCardPath).ForFiles().Filters("*.png").LabelWidth(120).ButtonWidth(144),
 		g.Row(
 			primaryButton(func() string {
 				if cuInProgress {
@@ -141,12 +141,12 @@ func ModeCardUsePage() g.Layout {
 					startGenerateCardMods()
 				}
 			}),
-			secondaryButton("打开借物表", 150, 48, func() {
+			secondaryButton("打开借物表", classicButtonWidth, classicButtonHeight, func() {
 				if cuOutputPath != "" {
 					util.OpenFile(cuOutputPath)
 				}
 			}),
-			secondaryButton("清除", 110, 48, func() {
+			secondaryButton("清除", classicButtonWidth, classicButtonHeight, func() {
 				cuCardPath = ""
 				cuStatus = ""
 				cuLog = ""

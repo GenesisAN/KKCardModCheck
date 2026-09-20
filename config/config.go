@@ -10,6 +10,7 @@ import (
 )
 
 type Config struct {
+	UnusedModOutputPath  string `json:"unused_mod_output_path"`
 	GamePath             string `json:"game_path"`
 	CardPath             string `json:"card_path"`
 	ModPath              string `json:"mod_path"`
@@ -36,6 +37,7 @@ func Load() {
 	viper.SetDefault("game_path", "")
 	viper.SetDefault("card_path", "")
 	viper.SetDefault("mod_path", "")
+	viper.SetDefault("unused_mod_output_path", "")
 	viper.SetDefault("init_config", false)
 	viper.SetDefault("info_build", false)
 	viper.SetDefault("info_build_time", "")
@@ -58,6 +60,7 @@ func Load() {
 	Instance.GamePath = viper.GetString("game_path")
 	Instance.CardPath = viper.GetString("card_path")
 	Instance.ModPath = viper.GetString("mod_path")
+	Instance.UnusedModOutputPath = viper.GetString("unused_mod_output_path")
 	Instance.InitConfig = viper.GetBool("init_config")
 	Instance.ModInfoBuild = viper.GetBool("info_build")
 	Instance.ModInfoBuildTime = viper.GetString("info_build_time")
@@ -75,6 +78,7 @@ func Save() {
 	viper.Set("game_path", Instance.GamePath)
 	viper.Set("card_path", Instance.CardPath)
 	viper.Set("mod_path", Instance.ModPath)
+	viper.Set("unused_mod_output_path", Instance.UnusedModOutputPath)
 	viper.Set("init_config", Instance.InitConfig)
 	viper.Set("info_build", Instance.ModInfoBuild)
 	viper.Set("info_build_time", Instance.ModInfoBuildTime)

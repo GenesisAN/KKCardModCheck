@@ -34,18 +34,18 @@ func ClassicSceneCardToolsPageV101() g.Layout {
 		classicSceneOutputPicker(),
 		g.Checkbox("按角色去重（推荐；取消后导出全部 Studio 角色实例）", &sceneUniqueOnly),
 		g.Row(
-			g.Button("解析场景卡").OnClick(parseSelectedSceneSafelyV101),
+			classicButton("解析场景卡").OnClick(parseSelectedSceneSafelyV101),
 			g.Style().SetDisabled(!sceneReadyForExtraction()).To(
-				g.Button("拆分角色卡").OnClick(extractSelectedSceneCharactersSafe),
+				classicButton("拆分角色卡").OnClick(extractSelectedSceneCharactersSafe),
 			),
 			g.Style().SetDisabled(sceneOutputDir == "").To(
-				g.Button("打开输出目录").OnClick(func() {
+				classicButton("打开输出目录").OnClick(func() {
 					if sceneOutputDir != "" {
 						openSceneOutputDir()
 					}
 				}),
 			),
-			g.Button("清除结果").OnClick(func() {
+			classicButton("清除结果").OnClick(func() {
 				resetSceneResult()
 				sceneExportLog = ""
 				g.Update()

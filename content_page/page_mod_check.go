@@ -30,8 +30,12 @@ var progressParsed int
 var progressScenes int
 var progressErrors int
 var checkMu sync.Mutex
+var checkGeneration uint64
+var completedCardPath string
 
 func resetCheckStateLocked() {
+	checkGeneration++
+	completedCardPath = ""
 	missingMods = nil
 	missingModsText = ""
 	usedMods = nil
@@ -215,6 +219,9 @@ func SingleCardCheck() {
 		return
 	}
 	isChecking = true
+	checkGeneration++
+	cardPath := config.Instance.CardPath
+	modInfoPath := config.Instance.ModInfoPath
 	checked = false
 	progressParsed = 0
 	progressScenes = 0
@@ -234,7 +241,7 @@ func SingleCardCheck() {
 				g.Update()
 			}
 		}()
-		localGUIDs, err := util.LoadModGUIDsFromJSON(config.Instance.ModInfoPath)
+		localGUIDs, err := util.LoadModGUIDsFromJSON(modInfoPath)
 		if err != nil {
 			checkMu.Lock()
 			tips = fmt.Sprintf("读取 MOD 文件失败：%s", err.Error())
@@ -244,7 +251,7 @@ func SingleCardCheck() {
 			return
 		}
 
-		ext := filepath.Ext(config.Instance.CardPath)
+		ext := filepath.Ext(cardPath)
 		modSummary := newCardModSummary(localGUIDs)
 		parsedCount := 0
 		sceneCount := 0
@@ -278,7 +285,7 @@ func SingleCardCheck() {
 		}
 
 		if strings.EqualFold(ext, ".png") {
-			card, err := ic.ReadCardFromPath(config.Instance.CardPath)
+			card, err := ic.ReadCardFromPath(cardPath)
 			if err != nil {
 				checkMu.Lock()
 				tips = fmt.Sprintf("卡片读取失败: %s", err.Error())
@@ -289,8 +296,8 @@ func SingleCardCheck() {
 			}
 			fmt.Println("→ 解析卡片成功:", card.GetPath())
 			processCard(card)
-		} else if ext == "" {
-			if !util.IsExist(config.Instance.CardPath) {
+		} else if info, statErr := os.Stat(cardPath); statErr == nil && info.IsDir() {
+			if !util.IsExist(cardPath) {
 				checkMu.Lock()
 				tips = "所选目录不存在，无法解析"
 				isChecking = false
@@ -300,8 +307,9 @@ func SingleCardCheck() {
 			}
 
 			errCanceled := errors.New("canceled")
-			walkErr := filepath.Walk(config.Instance.CardPath, func(path string, info os.FileInfo, err error) error {
+			walkErr := filepath.Walk(cardPath, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
+					errorCount++
 					return nil
 				}
 				if cancelRequested.Load() {
@@ -385,6 +393,7 @@ func SingleCardCheck() {
 			tips = fmt.Sprintf("检索完成，共解析 %d 张卡片（场景卡 %d 张），没有缺失的 MOD！", parsedCount, sceneCount)
 		}
 		checked = true
+		completedCardPath = cardPath
 		isChecking = false
 		progressParsed = parsedCount
 		progressScenes = sceneCount

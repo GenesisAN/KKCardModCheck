@@ -32,20 +32,20 @@ func classicWelcomeV4() g.Layout {
 		g.Child().ID(g.ID("classic-welcome-v4")).Size(-1, 180).Border(true).Flags(g.WindowFlagsNoScrollbar).Layout(
 			g.Label("步骤 1 / 2：设置游戏目录"),
 			g.Separator(),
-			util.FilePicker("游戏目录", &config.Instance.GamePath).ForDirectories().LabelWidth(100).ButtonWidth(100),
+			util.FilePicker("游戏目录", &config.Instance.GamePath).ForDirectories().LabelWidth(120).ButtonWidth(144),
 			g.Label("请选择 Koikatsu / Koikatsu Sunshine 安装目录，也可以直接选择 Koikatu_Data。").Wrapped(true),
 			classicWelcomeStatusV4(),
 		),
 		g.Dummy(0, 6),
 		g.Row(
-			g.Style().SetDisabled(config.Instance.GamePath == "").To(g.Button("保存并进入下一步").OnClick(func() {
+			g.Style().SetDisabled(config.Instance.GamePath == "").To(classicButton("保存并进入下一步").OnClick(func() {
 				config.Instance.InitConfig = true
 				config.Instance.HideModeInfoBuild = false
 				config.Save()
 				g.Update()
 			})),
-			g.Button("BUG 反馈").OnClick(func() { util.OpenURL("https://github.com/GenesisAN/KKCardModCheck/issues") }),
-			g.Button("GitHub").OnClick(func() { util.OpenURL("https://github.com/GenesisAN/KKCardModCheck") }),
+			classicButton("BUG 反馈").OnClick(func() { util.OpenURL("https://github.com/GenesisAN/KKCardModCheck/issues") }),
+			classicButton("GitHub").OnClick(func() { util.OpenURL("https://github.com/GenesisAN/KKCardModCheck") }),
 		),
 	}
 }
@@ -62,7 +62,7 @@ func classicWelcomeStatusV4() g.Widget {
 
 func classicModBuildV4() g.Layout {
 	actions := []g.Widget{
-		g.Button(func() string {
+		classicButton(func() string {
 			if modBuildInProgress {
 				return "正在构建..."
 			}
@@ -75,7 +75,7 @@ func classicModBuildV4() g.Layout {
 				startModBuild()
 			}
 		}),
-		g.Button("返回上一步").Disabled(modBuildInProgress).OnClick(func() {
+		classicButton("返回上一步").Disabled(modBuildInProgress).OnClick(func() {
 			config.Instance.InitConfig = false
 			config.Instance.HideModeInfoBuild = false
 			config.Save()
@@ -83,14 +83,14 @@ func classicModBuildV4() g.Layout {
 		}),
 	}
 	if len(modBuildFailedFiles) > 0 {
-		actions = append(actions, g.Button("移动损坏 MOD").Disabled(movingBadMods).OnClick(func() {
+		actions = append(actions, classicButton("移动损坏 MOD").Disabled(movingBadMods).OnClick(func() {
 			if !movingBadMods {
 				moveFailedMods()
 			}
 		}))
 	}
 	if config.Instance.ModInfoBuild {
-		actions = append(actions, g.Button("进入主界面").OnClick(func() {
+		actions = append(actions, classicButton("进入主界面").OnClick(func() {
 			config.Instance.HideModeInfoBuild = true
 			config.Save()
 			g.Update()
@@ -137,15 +137,15 @@ func classicSettingsV4() g.Layout {
 	return classicPageShell("设置", g.Layout{
 		g.Label("路径"),
 		g.Separator(),
-		util.FilePicker("游戏目录", &config.Instance.GamePath).ForDirectories().LabelWidth(100).ButtonWidth(100),
-		g.Row(g.Label("配置文件"), g.InputText(&cfgPath).Flags(g.InputTextFlagsReadOnly)),
+		util.FilePicker("游戏目录", &config.Instance.GamePath).ForDirectories().LabelWidth(120).ButtonWidth(144),
+		util.FilePicker("配置文件", &cfgPath).ReadOnly().LabelWidth(120).ButtonWidth(144).ButtonLabel("打开配置文件").OnClick(func() { util.OpenFile(config.GetConfigPath()) }),
 		g.Dummy(0, 6),
 		g.Label("操作"),
 		g.Separator(),
 		g.Row(
-			g.Button("打开配置文件").OnClick(func() { util.OpenFile(config.GetConfigPath()) }),
-			g.Button("GitHub").OnClick(func() { util.OpenURL("https://github.com/GenesisAN/KKCardModCheck") }),
-			g.Button("重置首次运行流程").OnClick(func() {
+			classicButton("打开配置文件").OnClick(func() { util.OpenFile(config.GetConfigPath()) }),
+			classicButton("GitHub").OnClick(func() { util.OpenURL("https://github.com/GenesisAN/KKCardModCheck") }),
+			classicButton("重置首次运行流程").OnClick(func() {
 				config.Instance.InitConfig = false
 				config.Instance.HideModeInfoBuild = false
 				config.Save()

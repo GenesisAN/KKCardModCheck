@@ -30,7 +30,7 @@ func classicSidebarWithUpdate() g.Widget {
 	return g.Child().ID(g.ID("classic-sidebar-update")).Size(205, -1).Border(true).Flags(g.WindowFlagsNoScrollbar).Layout(
 		g.Label("KKCardModCheck"),
 		g.Label("Version "+classicVersionState.current),
-		g.Separator(),
+		g.Dummy(0, 6),
 		classicNav("卡片检测", pageCardCheck),
 		classicNav("场景卡解析", pageSceneCard),
 		classicNav("卡片与 MOD 配对", pageModMatch),
@@ -39,8 +39,8 @@ func classicSidebarWithUpdate() g.Widget {
 		classicNav("设置", pageSettings),
 		g.Custom(func() {
 			_, height := g.GetAvailableRegion()
-			if height > 150 {
-				g.Dummy(0, height-150).Build()
+			if height > 180 {
+				g.Dummy(0, height-180).Build()
 			}
 		}),
 		classicUpdateStatusWidget(),
@@ -63,24 +63,24 @@ func classicUpdateStatusWidget() g.Widget {
 			g.Style().SetColor(g.StyleColorText, uiWarning).To(
 				g.Label(fmt.Sprintf("发现新版本: %s", classicVersionState.latest)),
 			),
-			g.Button("打开发布页").OnClick(func() {
+			classicButton("打开发布页").OnClick(func() {
 				util.OpenURL("https://github.com/GenesisAN/KKCardModCheck/releases")
 			}),
 		)
 	case classicVersionState.failed:
 		widgets = append(widgets,
 			g.Style().SetColor(g.StyleColorText, uiDanger).To(g.Label("检查失败")),
-			g.Button("重新检查").OnClick(runClassicVersionRetry),
+			classicButton("重新检查").OnClick(runClassicVersionRetry),
 		)
 	case classicVersionState.latest != "":
 		widgets = append(widgets,
 			g.Label("当前已是最新版本"),
-			g.Button("再次检查").OnClick(runClassicVersionRetry),
+			classicButton("再次检查").OnClick(runClassicVersionRetry),
 		)
 	default:
-		widgets = append(widgets, g.Button("检查更新").OnClick(runClassicVersionRetry))
+		widgets = append(widgets, classicButton("检查更新").OnClick(runClassicVersionRetry))
 	}
-	return g.Child().ID(g.ID("classic-update-status")).Size(-1, 72).Border(false).Flags(g.WindowFlagsNoScrollbar).Layout(widgets...)
+	return g.Child().ID(g.ID("classic-update-status")).Size(-1, 102).Border(false).Flags(g.WindowFlagsNoScrollbar).Layout(widgets...)
 }
 
 func runClassicVersionRetry() {

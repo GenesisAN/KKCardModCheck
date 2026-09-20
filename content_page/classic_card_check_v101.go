@@ -77,7 +77,7 @@ func ClassicCardCheckPageV101() g.Layout {
 
 func classicPreviewPanelV101(width float32, snapshot classicCheckSnapshotV101) g.Widget {
 	path := strings.Trim(strings.TrimSpace(config.Instance.CardPath), "\"")
-	layout := g.Layout{g.Label("预览 / 操作"), g.Separator()}
+	layout := g.Layout{g.Label("预览 / 操作"), g.Dummy(0, 2)}
 	if isPreviewableCard(path) {
 		layout = append(layout,
 			g.Row(
@@ -86,20 +86,27 @@ func classicPreviewPanelV101(width float32, snapshot classicCheckSnapshotV101) g
 			),
 		)
 	} else if path != "" {
-		layout = append(layout, g.Label("目录模式"), g.Label(filepath.Base(path)), g.Label("状态：已载入"), g.Dummy(0, 52))
+		layout = append(layout, g.Label("目录模式"), g.Label(filepath.Base(path)), g.Label("状态：已载入"))
 	} else {
-		layout = append(layout, g.Label("尚未选择卡片或目录"), g.Dummy(0, 94))
+		layout = append(layout, g.Label("尚未选择卡片或目录"))
 	}
+	layout = append(layout, g.Custom(func() {
+		_, remaining := g.GetAvailableRegion()
+		// Reserve the action height and the gap preceding it.
+		if remaining > classicButtonHeight+8 {
+			g.Dummy(0, remaining-classicButtonHeight-8).Build()
+		}
+	}))
 	if snapshot.checking {
 		layout = append(layout,
-			g.Button("取消检测").Size(-1, 34).OnClick(cancelClassicCheckV101),
+			classicButton("取消检测").Size(-1, classicButtonHeight).OnClick(cancelClassicCheckV101),
 		)
 	} else {
 		layout = append(layout,
-			g.Style().SetDisabled(path == "").To(g.Button("开始检测").Size(-1, 34).OnClick(SingleCardCheck)),
+			g.Style().SetDisabled(path == "").To(classicButton("开始检测").Size(-1, classicButtonHeight).OnClick(SingleCardCheck)),
 		)
 	}
-	return g.Child().ID(g.ID("classic-preview-v101")).Size(width, 245).Border(true).Flags(g.WindowFlagsNoScrollbar).Layout(layout...)
+	return g.Child().ID(g.ID("classic-preview-v101")).Size(width, 280).Border(true).Flags(g.WindowFlagsNoScrollbar).Layout(layout...)
 }
 
 func classicResultsPanelV101(snapshot classicCheckSnapshotV101) g.Widget {
@@ -115,31 +122,32 @@ func classicResultsPanelV101(snapshot classicCheckSnapshotV101) g.Widget {
 	return g.Child().ID(g.ID("classic-results-v101")).Size(-1, -1).Border(true).Layout(
 		g.Row(
 			g.Label("检测结果"),
-			g.Separator(),
+			g.Dummy(12, 0),
 			g.Label(status),
 			g.Spacing(),
-			g.Style().SetDisabled(snapshot.checking).To(g.Button("清除").OnClick(clearClassicCheckV101)),
+			g.Style().SetDisabled(snapshot.checking).To(classicButton("清除").OnClick(clearClassicCheckV101)),
 		),
 		g.Row(
 			g.Label(fmt.Sprintf("解析卡片: %d", snapshot.progressParsed)),
-			g.Separator(),
+			g.Dummy(12, 0),
 			g.Style().SetColor(g.StyleColorText, uiDanger).To(g.Label(fmt.Sprintf("综合缺失 MOD: %d", len(snapshot.missing)))),
-			g.Separator(),
+			g.Dummy(12, 0),
 			g.Style().SetColor(g.StyleColorText, uiSuccess).To(g.Label(fmt.Sprintf("综合使用 MOD: %d", len(snapshot.used)))),
 		),
 		g.TabBar().TabItems(
 			g.TabItem(fmt.Sprintf("综合缺失的 MOD (%d)", len(snapshot.missing))).Layout(
-				g.Row(g.Style().SetDisabled(snapshot.missingText == "").To(g.Button("复制列表").OnClick(func() {
+				g.Row(g.Style().SetDisabled(snapshot.missingText == "").To(classicButton("复制列表").OnClick(func() {
 					copyClassicCheckTextV101(snapshot.missingText)
 				}))),
 				classicResultTableV101(snapshot.missing, "缺失", snapshot.checked),
 			),
 			g.TabItem(fmt.Sprintf("综合使用的 MOD (%d)", len(snapshot.used))).Layout(
-				g.Row(g.Style().SetDisabled(snapshot.usedText == "").To(g.Button("复制列表").OnClick(func() {
+				g.Row(g.Style().SetDisabled(snapshot.usedText == "").To(classicButton("复制列表").OnClick(func() {
 					copyClassicCheckTextV101(snapshot.usedText)
 				}))),
 				classicResultTableV101(snapshot.used, "使用", snapshot.checked),
 			),
+			unusedModsTab(),
 		),
 	)
 }
@@ -158,7 +166,7 @@ func classicResultTableV101(entries []string, status string, checked bool) g.Wid
 			rows = append(rows, g.TableRow(
 				g.Label(value),
 				g.Label(status),
-				g.Button("复制##classic-v101-"+status+strconv.Itoa(index)).OnClick(func() { _ = util.CopyToClipboard(value) }),
+				classicButton("复制##classic-v101-"+status+strconv.Itoa(index)).Size(classicInlineButtonWidth, classicInlineButtonHeight).OnClick(func() { _ = util.CopyToClipboard(value) }),
 			).MinHeight(30))
 		}
 	}
@@ -166,7 +174,7 @@ func classicResultTableV101(entries []string, status string, checked bool) g.Wid
 		g.TableColumn("MOD GUID").Flags(g.TableColumnFlagsWidthStretch).InnerWidthOrWeight(0.72),
 		g.TableColumn("状态").Flags(g.TableColumnFlagsWidthFixed).InnerWidthOrWeight(90),
 		g.TableColumn("操作").Flags(g.TableColumnFlagsWidthFixed).InnerWidthOrWeight(80),
-	).Rows(rows...).Size(-1, -1).Flags(g.TableFlagsRowBg | g.TableFlagsBorders | g.TableFlagsResizable | g.TableFlagsScrollY | g.TableFlagsSizingStretchProp)
+	).Rows(rows...).Size(-1, -1).Flags(g.TableFlagsRowBg | g.TableFlagsBordersInnerH | g.TableFlagsResizable | g.TableFlagsScrollY | g.TableFlagsSizingStretchProp)
 }
 
 func cancelClassicCheckV101() {

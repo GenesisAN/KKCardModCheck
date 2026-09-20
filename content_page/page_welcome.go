@@ -44,7 +44,7 @@ func Welcome() g.Layout {
 					sectionLabel("设置游戏目录"),
 					mutedLabel("请选择 Koikatsu / Koikatsu Sunshine 安装目录，或直接选择 Koikatu_Data"),
 					g.Dummy(0, 4),
-					util.FilePicker("游戏目录", &config.Instance.GamePath).ForDirectories().LabelWidth(110).ButtonWidth(140),
+					util.FilePicker("游戏目录", &config.Instance.GamePath).ForDirectories().LabelWidth(120).ButtonWidth(144),
 					welcomeWarning(),
 					g.Dummy(0, 12),
 					g.Align(g.AlignCenter).To(

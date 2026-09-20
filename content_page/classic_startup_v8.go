@@ -16,7 +16,11 @@ func InitialConfigWindowClassicV8() g.Layout {
 	return g.Layout{classicTheme(
 		g.Row(
 			classicSidebarWithUpdate(),
-			g.Child().ID(g.ID("classic-workspace-v8")).Size(-1, -1).Border(false).Layout(classicActivePageV8()...),
+			g.Style().SetStyle(g.StyleVarWindowPadding, 0, 0).To(
+				g.Child().ID(g.ID("classic-workspace-v8")).Size(-1, -1).Border(false).Layout(
+					g.Style().SetStyle(g.StyleVarWindowPadding, 12, 12).To(classicActivePageV8()...),
+				),
+			),
 		),
 	)}
 }

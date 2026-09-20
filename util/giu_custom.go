@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"image"
 	"path/filepath"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 
 // FilePickerWidget 封装的文件选择器组件，遵循giu的Widget接口
 type FilePickerWidget struct {
+	readOnly       bool
 	label          string
 	path           *string
 	buttonLabel    string
@@ -32,13 +34,19 @@ func FilePicker(label string, path *string) *FilePickerWidget {
 		path:           path,
 		buttonLabel:    "浏览",
 		dialogTitle:    "选择",
-		labelWidth:     200,
-		buttonWidth:    180,
+		labelWidth:     120,
+		buttonWidth:    144,
 		minInputWidth:  200,
 		dualMode:       false,
 		fileButtonText: "文件",
 		dirButtonText:  "文件夹",
 	}
+}
+
+// ReadOnly keeps informational paths selectable without allowing edits.
+func (fp *FilePickerWidget) ReadOnly() *FilePickerWidget {
+	fp.readOnly = true
+	return fp
 }
 
 // ButtonLabel 设置按钮文本
@@ -126,91 +134,59 @@ func (fp *FilePickerWidget) OnClick(f func()) *FilePickerWidget {
 
 // Build 构建组件（实现g.Widget接口）
 func (fp *FilePickerWidget) Build() {
-	availableWidth, _ := g.GetAvailableRegion()
-
-	var inputWidth float32
-	var widgets []g.Widget
-
-	if fp.dualMode {
-		// 双按钮模式：输入框 + 文件按钮 + 文件夹按钮
-		fileButtonText := fp.fileButtonText
-		dirButtonText := fp.dirButtonText
-
-		// 当可用空间较小时，使用更短的按钮文本
-		if availableWidth < 400 {
-			// 非常小的空间，使用最短文本
-			fileButtonText = "文"
-			dirButtonText = "夹"
-		} else if availableWidth < 500 {
-			// 较小空间，使用中等长度文本
-			fileButtonText = "文件"
-			dirButtonText = "文件夹"
-		}
-
-		// 改进按钮宽度计算：使用更精确的字符宽度估算
-		fileButtonWidth := fp.calculateButtonWidth(fileButtonText)
-		dirButtonWidth := fp.calculateButtonWidth(dirButtonText) // 设置合理的最小按钮宽度
-		minButtonWidth := float32(60)
-		if fileButtonWidth < minButtonWidth {
-			fileButtonWidth = minButtonWidth
-		}
-		if dirButtonWidth < minButtonWidth {
-			dirButtonWidth = minButtonWidth
-		}
-
-		// 如果用户设置了 buttonWidth，使用用户设置的值作为最小宽度
-		if fp.buttonWidth > 0 {
-			if fileButtonWidth < fp.buttonWidth {
-				fileButtonWidth = fp.buttonWidth
-			}
-			if dirButtonWidth < fp.buttonWidth {
-				dirButtonWidth = fp.buttonWidth
-			}
-		}
-
-		// 计算总的按钮区域宽度，包括按钮间距和右侧边距
-		buttonSpacing := float32(6) // 按钮之间的间距
-		//rightMargin := float32(10)  // 右侧边距
-		totalButtonWidth := fileButtonWidth + dirButtonWidth + buttonSpacing
-
-		// 预留足够的空间给输入框，确保布局不会太紧凑
-		reservedWidth := fp.labelWidth + totalButtonWidth
-		inputWidth = availableWidth - reservedWidth
-
-		// 确保输入框有最小宽度
-		if inputWidth < fp.minInputWidth {
-			inputWidth = fp.minInputWidth
-		}
-
-		widgets = []g.Widget{
-			g.Label(fp.label),
-			g.InputText(fp.path).Size(inputWidth),
-			g.Button(fileButtonText).Size(fileButtonWidth, 0).OnClick(fp.onFileButtonClick),
-			g.Button(dirButtonText).Size(dirButtonWidth, 0).OnClick(fp.onDirButtonClick),
-		}
-	} else {
-		// 单按钮模式：输入框 + 浏览按钮
-		//rightMargin := float32(10)                                         // 右侧边距
-		reservedWidth := fp.labelWidth + fp.buttonWidth
-		inputWidth = availableWidth - reservedWidth
-		if inputWidth < fp.minInputWidth {
-			inputWidth = fp.minInputWidth
-		}
-
-		widgets = []g.Widget{
-			g.Label(fp.label),
-			g.InputText(fp.path).Size(inputWidth),
-			//g.Button(fp.buttonLabel).Size(fp.buttonWidth, 0).OnClick(fp.onBrowseClick),
-		}
-		if fp.Click != nil {
-			widgets = append(widgets, g.Button(fp.buttonLabel).Size(fp.buttonWidth, 0).OnClick(fp.Click))
-		} else {
-			widgets = append(widgets, g.Button(fp.buttonLabel).Size(fp.buttonWidth, 0).OnClick(fp.onBrowseClick))
-		}
-
+	const gap float32 = 8
+	const height float32 = 32
+	available, _ := g.GetAvailableRegion()
+	origin := g.GetCursorPos()
+	buttonWidth := fp.buttonWidth
+	if buttonWidth <= 0 {
+		buttonWidth = 144
 	}
-
-	g.Row(widgets...).Build()
+	labelWidth := fp.labelWidth
+	if labelWidth <= 0 {
+		labelWidth = 120
+	}
+	buttons := 1
+	if fp.dualMode {
+		buttons = 2
+	}
+	inputWidth := available - labelWidth - gap - float32(buttons)*(buttonWidth+gap)
+	// Stack the label above the controls only when the form becomes too narrow.
+	controlY := origin.Y
+	inputX := origin.X + int(labelWidth+gap)
+	g.SetCursorPos(image.Pt(origin.X, origin.Y+3))
+	g.AlignTextToFramePadding()
+	g.Label(fp.label).Build()
+	if inputWidth < fp.minInputWidth {
+		controlY += int(height + gap)
+		inputX = origin.X
+		inputWidth = available - float32(buttons)*(buttonWidth+gap)
+	}
+	if inputWidth < 1 {
+		inputWidth = 1
+	}
+	g.SetCursorPos(image.Pt(inputX, controlY+3))
+	input := g.InputText(fp.path).Size(inputWidth)
+	if fp.readOnly {
+		input.Flags(g.InputTextFlagsReadOnly)
+	}
+	input.Build()
+	buttonX := inputX + int(inputWidth+gap)
+	g.SetCursorPos(image.Pt(buttonX, controlY))
+	if fp.dualMode {
+		g.Button(fp.fileButtonText).Size(buttonWidth, height).OnClick(fp.onFileButtonClick).Build()
+		g.SetCursorPos(image.Pt(buttonX+int(buttonWidth+gap), controlY))
+		g.Button(fp.dirButtonText).Size(buttonWidth, height).OnClick(fp.onDirButtonClick).Build()
+	} else {
+		click := fp.onBrowseClick
+		if fp.Click != nil {
+			click = fp.Click
+		}
+		g.Button(fp.buttonLabel).Size(buttonWidth, height).OnClick(click).Build()
+	}
+	// Register the complete row so the following field starts at the same column.
+	g.SetCursorPos(origin)
+	g.Dummy(available, float32(controlY-origin.Y)+height).Build()
 }
 
 // calculateButtonWidth 计算按钮宽度的辅助方法
